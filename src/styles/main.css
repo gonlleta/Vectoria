@@ -1043,18 +1043,35 @@ canvas {
   gap: 0.3rem;
 }
 
-/* Micrófono Grabando Animación */
-.mic-btn-recording {
-  background: #ef4444 !important;
-  color: #fff !important;
-  animation: pulse-red 1.2s infinite ease-in-out;
-  box-shadow: 0 0 15px rgba(239, 68, 68, 0.6) !important;
+/* Ajustes responsivos para Hoja de Cuaderno Virtual en Móvil */
+@media (max-width: 768px) {
+  .sheet-paper {
+    padding: 1.1rem 0.85rem 1.1rem 1.6rem;
+    background-size: 20px 20px;
+  }
+
+  .margin-line {
+    left: 1.1rem;
+  }
+
+  .sheet-heading {
+    font-size: 0.98rem;
+  }
+
+  .sheet-section-title {
+    font-size: 0.85rem;
+  }
+
+  .sheet-formula-box {
+    font-size: 1.05rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .sheet-result-math {
+    font-size: 1.15rem;
+  }
 }
 
-@keyframes pulse-red {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.85; }
-}
 
 
 @media (max-width: 768px) {

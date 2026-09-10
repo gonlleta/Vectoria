@@ -185,13 +185,14 @@ function solveMRUDetail(ext) {
     unit = 'm/s';
     formula = 'v = \\frac{d}{t}';
     datos = [
-      { label: 'Distancia (d)', val: `${d} m` },
-      { label: 'Tiempo (t)', val: `${t} s` }
+      { label: 'Distancia recorrida (d)', val: `${d} m` },
+      { label: 'Tiempo empleado (t)', val: `${t} s` }
     ];
     pasos = [
-      `Ecuación de velocidad en MRU: v = d / t`,
-      `Sustituyendo los datos: v = ${d} m / ${t} s`,
-      `Velocidad resultante: v = ${resVal.toFixed(2)} m/s (${(resVal * 3.6).toFixed(2)} km/h)`
+      `1) Planteamos la ecuación fundamental del MRU: v = d / t`,
+      `2) Sustituimos la distancia (${d} m) y el tiempo (${t} s): v = ${d} / ${t}`,
+      `3) Realizamos la división: v = ${resVal.toFixed(2)} m/s`,
+      `4) Conversión opcional a km/h: ${resVal.toFixed(2)} m/s × 3.6 = ${(resVal * 3.6).toFixed(2)} km/h`
     ];
   } else if (v !== null && t !== null) {
     incognita = 'Distancia Recorrida (d)';
@@ -199,13 +200,13 @@ function solveMRUDetail(ext) {
     unit = 'm';
     formula = 'd = v \\cdot t';
     datos = [
-      { label: 'Velocidad (v)', val: `${v.toFixed(2)} m/s` },
+      { label: 'Velocidad constante (v)', val: `${v.toFixed(2)} m/s` },
       { label: 'Tiempo (t)', val: `${t} s` }
     ];
     pasos = [
-      `Ecuación de posición en MRU: d = v * t`,
-      `Multiplicando velocidad por tiempo: d = ${v.toFixed(2)} m/s * ${t} s`,
-      `Distancia recorrida: d = ${resVal.toFixed(2)} m`
+      `1) Planteamos la fórmula de posición en MRU: d = v × t`,
+      `2) Sustituimos los valores conocidos: d = ${v.toFixed(2)} m/s × ${t} s`,
+      `3) Multiplicamos ambos términos: d = ${resVal.toFixed(2)} m`
     ];
   } else if (d !== null && v !== null && v > 0) {
     incognita = 'Tiempo Transcurrido (t)';
@@ -217,9 +218,9 @@ function solveMRUDetail(ext) {
       { label: 'Velocidad (v)', val: `${v.toFixed(2)} m/s` }
     ];
     pasos = [
-      `Despejando el tiempo en MRU: t = d / v`,
-      `Sustituyendo datos: t = ${d} m / ${v.toFixed(2)} m/s`,
-      `Tiempo resultante: t = ${resVal.toFixed(2)} s`
+      `1) Despejamos el tiempo de la fórmula v = d / t obteniendo: t = d / v`,
+      `2) Sustituimos los datos: t = ${d} m / ${v.toFixed(2)} m/s`,
+      `3) Calculamos el cociente: t = ${resVal.toFixed(2)} s`
     ];
   }
 
@@ -231,7 +232,7 @@ function solveMRUDetail(ext) {
     formula,
     datos,
     pasos,
-    resultado: `${resVal.toFixed(2)} \\text{ ${unit}}`,
+    resultado: `${resVal.toFixed(2)} ${formatUnitLatex(unit)}`,
     explicacion: `¡Listo! 🚗 En el MRU la velocidad se mantiene totalmente constante sin aceleración.`,
     tip: 'Recuerda que para pasar de m/s a km/h se multiplica por 3.6.'
   };
@@ -258,13 +259,13 @@ function solveMRUVDetail(ext) {
     datos = [
       { label: 'Velocidad inicial (v₀)', val: `${v0.toFixed(2)} m/s` },
       { label: 'Velocidad final (v_f)', val: `${vf.toFixed(2)} m/s` },
-      { label: 'Tiempo (t)', val: `${t} s` }
+      { label: 'Tiempo transcurrido (t)', val: `${t} s` }
     ];
     pasos = [
-      `Definición de aceleración constante: a = (v_f - v_0) / t`,
-      `Diferencia de velocidad: ${vf.toFixed(2)} - ${v0.toFixed(2)} = ${(vf - v0).toFixed(2)} m/s`,
-      `Dividiendo entre el tiempo (${t} s): a = ${(vf - v0).toFixed(2)} / ${t}`,
-      `Resultado de la aceleración: a = ${resVal.toFixed(2)} m/s²`
+      `1) Escribimos la definición de aceleración constante: a = (v_f - v_0) / t`,
+      `2) Calculamos el cambio de velocidad (Δv): v_f - v_0 = ${vf.toFixed(2)} m/s - ${v0.toFixed(2)} m/s = ${(vf - v0).toFixed(2)} m/s`,
+      `3) Dividimos el cambio de velocidad entre el tiempo: a = ${(vf - v0).toFixed(2)} m/s / ${t} s`,
+      `4) Obtenemos la aceleración constante: a = ${resVal.toFixed(2)} m/s²`
     ];
   } else if (v0 !== null && a !== null && t !== null) {
     incognita = 'Distancia Recorrida (d)';
@@ -273,14 +274,14 @@ function solveMRUVDetail(ext) {
     formula = 'd = v_0 t + \\frac{1}{2} a t^2';
     datos = [
       { label: 'Velocidad inicial (v₀)', val: `${v0.toFixed(2)} m/s` },
-      { label: 'Aceleración (a)', val: `${a.toFixed(2)} m/s²` },
+      { label: 'Aceleración constante (a)', val: `${a.toFixed(2)} m/s²` },
       { label: 'Tiempo (t)', val: `${t} s` }
     ];
     pasos = [
-      `Fórmula de la posición en MRUV: d = v₀·t + 0.5·a·t²`,
-      `Término de velocidad inicial: ${v0.toFixed(2)} * ${t} = ${(v0 * t).toFixed(2)} m`,
-      `Término acelerado: 0.5 * ${a.toFixed(2)} * (${t})² = ${(0.5 * a * t * t).toFixed(2)} m`,
-      `Distancia total recorrida: d = ${resVal.toFixed(2)} m`
+      `1) Planteamos la ecuación de posición del MRUV: d = v₀·t + 0.5·a·t²`,
+      `2) Calculamos el primer término (avance inicial): ${v0.toFixed(2)} m/s × ${t} s = ${(v0 * t).toFixed(2)} m`,
+      `3) Calculamos el segundo término (avance por aceleración): 0.5 × ${a.toFixed(2)} m/s² × (${t} s)² = ${(0.5 * a * t * t).toFixed(2)} m`,
+      `4) Sumamos ambos términos: d = ${(v0 * t).toFixed(2)} m + ${(0.5 * a * t * t).toFixed(2)} m = ${resVal.toFixed(2)} m`
     ];
   } else {
     v0 = ext.rawNumbers[0]?.num || 0;
@@ -295,9 +296,9 @@ function solveMRUVDetail(ext) {
       { label: 't', val: `${t} s` }
     ];
     pasos = [
-      `Aplicamos la ecuación fundamental del MRUV: a = (v_f - v_0) / t`,
-      `Sustituyendo datos: a = (${vf} - ${v0}) / ${t}`,
-      `Aceleración resultante: a = ${resVal.toFixed(2)} m/s²`
+      `1) Aplicamos la ecuación de aceleración en MRUV: a = (v_f - v_0) / t`,
+      `2) Sustituimos los valores: a = (${vf} m/s - ${v0} m/s) / ${t} s`,
+      `3) Aceleración calculada: a = ${resVal.toFixed(2)} m/s²`
     ];
   }
 
@@ -309,10 +310,14 @@ function solveMRUVDetail(ext) {
     formula,
     datos,
     pasos,
-    resultado: `${resVal.toFixed(2)} \\text{m/s}^2`,
+    resultado: `${resVal.toFixed(2)} ${formatUnitLatex(unit)}`,
     explicacion: `¡Excelente ejercicio de MRUV! 🏎️ En el MRUV la aceleración es constante y modifica el valor de la velocidad en cada segundo.`,
     tip: 'Si el móvil frena hasta detenerse, la velocidad final v_f siempre vale 0 m/s.'
   };
+}
+
+function formatUnitLatex(unit) {
+  return `\\text{${unit}}`;
 }
 
 function solveEncuentroMRU(ext, text) {
