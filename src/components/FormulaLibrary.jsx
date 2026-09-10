@@ -6,101 +6,77 @@ const FORMULA_DATABASE = [
   {
     id: 1,
     title: 'Velocidad en MRU',
-    category: 'Cinemática',
+    category: 'MRU',
     formula: 'v = \\frac{d}{t}',
     variables: [
-      { name: 'v', desc: 'Velocidad (m/s)' },
-      { name: 'd', desc: 'Distancia (m)' },
-      { name: 't', desc: 'Tiempo (s)' }
+      { name: 'v', desc: 'Velocidad constante (m/s)' },
+      { name: 'd', desc: 'Distancia recorrida (m)' },
+      { name: 't', desc: 'Tiempo transcurrido (s)' }
     ],
-    antoNote: 'En el MRU la velocidad no cambia nunca con el tiempo.'
+    antoNote: 'En el MRU la velocidad nunca cambia y la aceleración vale exactamente cero.'
   },
   {
     id: 2,
-    title: 'Aceleración en MRUV',
-    category: 'Cinemática',
-    formula: 'a = \\frac{v_f - v_0}{t}',
+    title: 'Posición y Distancia en MRU',
+    category: 'MRU',
+    formula: 'd = v \\cdot t',
     variables: [
-      { name: 'a', desc: 'Aceleración (m/s²)' },
-      { name: 'v_f', desc: 'Velocidad Final (m/s)' },
-      { name: 'v_0', desc: 'Velocidad Inicial (m/s)' },
+      { name: 'd', desc: 'Distancia recorrida (m)' },
+      { name: 'v', desc: 'Velocidad constante (m/s)' },
       { name: 't', desc: 'Tiempo (s)' }
     ],
-    antoNote: 'Si la aceleración es negativa, el móvil está desacelerando o frenando.'
+    antoNote: 'Permite calcular qué tan lejos llega un móvil que marcha a velocidad uniforme.'
   },
   {
     id: 3,
-    title: 'Posición en MRUV',
-    category: 'Cinemática',
-    formula: 'd = v_0 t + \\frac{1}{2} a t^2',
+    title: 'Definición de Aceleración (MRUV)',
+    category: 'MRUV',
+    formula: 'a = \\frac{v_f - v_0}{t}',
     variables: [
-      { name: 'd', desc: 'Distancia recorrida (m)' },
-      { name: 'v_0', desc: 'Velocidad Inicial (m/s)' },
-      { name: 'a', desc: 'Aceleración (m/s²)' },
+      { name: 'a', desc: 'Aceleración constante (m/s²)' },
+      { name: 'v_f', desc: 'Velocidad final (m/s)' },
+      { name: 'v_0', desc: 'Velocidad inicial (m/s)' },
       { name: 't', desc: 'Tiempo (s)' }
     ],
-    antoNote: 'Si parte del reposo, el primer término v₀·t se vuelve cero.'
+    antoNote: 'Si el objeto frena, la aceleración resultante da con signo negativo.'
   },
   {
     id: 4,
-    title: '2ª Ley de Newton',
-    category: 'Dinámica',
-    formula: 'F = m \\cdot a',
+    title: 'Posición con Aceleración (MRUV)',
+    category: 'MRUV',
+    formula: 'd = v_0 t + \\frac{1}{2} a t^2',
     variables: [
-      { name: 'F', desc: 'Fuerza resultante (N)' },
-      { name: 'm', desc: 'Masa (kg)' },
-      { name: 'a', desc: 'Aceleración (m/s²)' }
+      { name: 'd', desc: 'Distancia (m)' },
+      { name: 'v_0', desc: 'Velocidad inicial (m/s)' },
+      { name: 'a', desc: 'Aceleración (m/s²)' },
+      { name: 't', desc: 'Tiempo (s)' }
     ],
-    antoNote: 'Recuerda que 1 Newton equivale a 1 kg·m/s².'
+    antoNote: 'Si el móvil parte del reposo, el término v₀·t vale 0.'
   },
   {
     id: 5,
-    title: 'Peso Gravitatorio',
-    category: 'Dinámica',
-    formula: 'P = m \\cdot g',
+    title: 'Ecuación de Torricelli (Sin tiempo)',
+    category: 'MRUV',
+    formula: 'v_f^2 = v_0^2 + 2 a d',
     variables: [
-      { name: 'P', desc: 'Peso (N)' },
-      { name: 'm', desc: 'Masa (kg)' },
-      { name: 'g', desc: 'Gravedad (9.8 m/s² en la Tierra)' }
+      { name: 'v_f', desc: 'Velocidad final (m/s)' },
+      { name: 'v_0', desc: 'Velocidad inicial (m/s)' },
+      { name: 'a', desc: 'Aceleración (m/s²)' },
+      { name: 'd', desc: 'Distancia (m)' }
     ],
-    antoNote: 'El peso es una fuerza vectorial dirigida hacia el centro de la Tierra.'
+    antoNote: 'Ideal para resolver ejercicios donde no te dan el dato del tiempo.'
   },
   {
     id: 6,
-    title: 'Energía Cinética',
-    category: 'Trabajo y Energía',
-    formula: 'E_k = \\frac{1}{2} m v^2',
+    title: 'Tiempo de Encuentro en MRU',
+    category: 'Encuentro',
+    formula: 't_e = \\frac{D}{v_1 + v_2}',
     variables: [
-      { name: 'E_k', desc: 'Energía Cinética (J)' },
-      { name: 'm', desc: 'Masa (kg)' },
-      { name: 'v', desc: 'Velocidad (m/s)' }
+      { name: 't_e', desc: 'Tiempo de encuentro (s)' },
+      { name: 'D', desc: 'Distancia inicial entre autos (m)' },
+      { name: 'v_1, v_2', desc: 'Velocidades de los dos móviles (m/s)' }
     ],
-    antoNote: 'Al elevarse la velocidad al cuadrado, duplicar v quadruplica la energía.'
-  },
-  {
-    id: 7,
-    title: 'Energía Potencial Gravitatoria',
-    category: 'Trabajo y Energía',
-    formula: 'E_p = m \\cdot g \\cdot h',
-    variables: [
-      { name: 'E_p', desc: 'Energía Potencial (J)' },
-      { name: 'm', desc: 'Masa (kg)' },
-      { name: 'g', desc: 'Gravedad (m/s²)' },
-      { name: 'h', desc: 'Altura (m)' }
-    ],
-    antoNote: 'Es la energía almacenada por la posición de altura del cuerpo.'
-  },
-  {
-    id: 8,
-    title: 'Ley de Ohm',
-    category: 'Electricidad',
-    formula: 'V = I \\cdot R',
-    variables: [
-      { name: 'V', desc: 'Voltaje / Tensión (V)' },
-      { name: 'I', desc: 'Intensidad de corriente (A)' },
-      { name: 'R', desc: 'Resistencia eléctrica (Ω)' }
-    ],
-    antoNote: 'Muestra cómo interactúan el voltaje, la corriente y la resistencia en un circuito.'
+    antoNote: 'Fórmula para dos móviles que viajan uno hacia el otro desde puntos opuestos.'
   }
 ];
 
@@ -108,7 +84,7 @@ export default function FormulaLibrary({ onSendToAnto }) {
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('Todas');
 
-  const categories = ['Todas', 'Cinemática', 'Dinámica', 'Trabajo y Energía', 'Electricidad'];
+  const categories = ['Todas', 'MRU', 'MRUV', 'Encuentro'];
 
   const filteredFormulas = FORMULA_DATABASE.filter((item) => {
     const matchesSearch = item.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -124,23 +100,21 @@ export default function FormulaLibrary({ onSendToAnto }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <h2 style={{ fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <BookOpen size={24} color="var(--accent-purple)" />
-            Biblioteca de Fórmulas y Teoría
+            Formulario Especializado en MRU y MRUV
           </h2>
 
-          {/* Barra de búsqueda */}
           <div className="input-box-wrapper" style={{ width: '280px' }}>
             <Search size={18} color="var(--text-muted)" />
             <input
               type="text"
               className="chat-input"
-              placeholder="Buscar fórmula..."
+              placeholder="Buscar fórmula MRU/MRUV..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
         </div>
 
-        {/* Categorías */}
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {categories.map((cat) => (
             <button
@@ -174,7 +148,6 @@ export default function FormulaLibrary({ onSendToAnto }) {
               dangerouslySetInnerHTML={{ __html: renderBlockLatex(item.formula) }}
             />
 
-            {/* Variables */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
               {item.variables.map((v, i) => (
                 <div key={i}>
@@ -183,15 +156,14 @@ export default function FormulaLibrary({ onSendToAnto }) {
               ))}
             </div>
 
-            {/* Nota de Anto */}
             <div style={{ fontSize: '0.82rem', color: '#fde68a', background: 'rgba(245, 158, 11, 0.08)', padding: '0.6rem', borderRadius: '8px', borderLeft: '2px solid #f59e0b' }}>
-              <strong>Nota de Anto 🫶:</strong> {item.antoNote}
+              <strong>Tip de Anto 🫶:</strong> {item.antoNote}
             </div>
 
             <button
               className="btn-secondary"
               style={{ marginTop: 'auto', width: '100%', fontSize: '0.82rem' }}
-              onClick={() => onSendToAnto && onSendToAnto(`Explicame detalladamente la fórmula ${item.title}: ${item.formula}`)}
+              onClick={() => onSendToAnto && onSendToAnto(`Explicame detalladamente la fórmula de ${item.title}: ${item.formula}`)}
             >
               <Send size={14} /> Resolver con Anto 🫶
             </button>

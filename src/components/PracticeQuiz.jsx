@@ -1,62 +1,61 @@
 import React, { useState } from 'react';
-import { Award, CheckCircle2, XCircle, RotateCcw, Sparkles, ArrowRight, Lightbulb } from 'lucide-react';
-import { renderBlockLatex } from '../utils/katexRender';
+import { Award, CheckCircle2, XCircle, RotateCcw, Sparkles, ArrowRight } from 'lucide-react';
 
 const QUIZ_QUESTIONS = [
   {
     id: 1,
-    question: 'Si un vehículo parte del reposo y alcanza una velocidad de 20 m/s en 4 segundos, ¿cuál es su aceleración constante?',
+    question: 'Si un vehículo parte del reposo en MRUV y alcanza 20 m/s en 4 segundos, ¿cuál es su aceleración?',
     options: [
       { text: '5 m/s²', correct: true },
       { text: '80 m/s²', correct: false },
       { text: '4 m/s²', correct: false },
       { text: '10 m/s²', correct: false }
     ],
-    explanation: 'Usando la fórmula a = (v_f - v_0) / t: a = (20 - 0) / 4 = 5 m/s².'
+    explanation: 'Usamos la fórmula a = (v_f - v_0) / t. Como parte del reposo v_0 = 0: a = (20 - 0) / 4 = 5 m/s².'
   },
   {
     id: 2,
-    question: '¿Qué ocurre con la energía cinética de un automóvil si se duplica su velocidad?',
+    question: 'En un Movimiento Rectilíneo Uniforme (MRU), ¿cuánto vale la aceleración del móvil?',
     options: [
-      { text: 'Se duplica', correct: false },
-      { text: 'Se cuadruplica (aumenta 4 veces)', correct: true },
-      { text: 'Permanece constante', correct: false },
-      { text: 'Se reduce a la mitad', correct: false }
+      { text: 'Es mayor a cero (a > 0)', correct: false },
+      { text: 'Es exactamente cero (a = 0)', correct: true },
+      { text: 'Es negativa (a < 0)', correct: false },
+      { text: 'Depende del tiempo', correct: false }
     ],
-    explanation: 'Dado que E_k = 1/2 m v², como la velocidad v está elevada al cuadrado, (2v)² = 4v².'
+    explanation: 'En el MRU la velocidad no cambia en ningún momento, por lo que la aceleración es 0 m/s².'
   },
   {
     id: 3,
-    question: '¿Cuál es el peso en la Tierra de una masa de 10 kg? (g = 9.8 m/s²)',
+    question: '¿A cuántos m/s equivale una velocidad constante de 90 km/h?',
     options: [
-      { text: '10 N', correct: false },
-      { text: '98 N', correct: true },
-      { text: '9.8 kg', correct: false },
-      { text: '100 N', correct: false }
+      { text: '90 m/s', correct: false },
+      { text: '25 m/s', correct: true },
+      { text: '324 m/s', correct: false },
+      { text: '15 m/s', correct: false }
     ],
-    explanation: 'El peso se calcula con P = m · g = 10 kg · 9.8 m/s² = 98 N.'
+    explanation: 'Para pasar de km/h a m/s dividimos por 3.6: 90 / 3.6 = 25 m/s.'
   },
   {
     id: 4,
-    question: 'Un objeto cae libremente desde cierta altura. Ignorando el aire, su velocidad a los 3 segundos de caer es aproximadamente:',
+    question: 'Si un vehículo viaja a 30 m/s y aplica los frenos desacelerando a -6 m/s², ¿cuántos segundos tarda en detenerse por completo?',
     options: [
-      { text: '29.4 m/s', correct: true },
-      { text: '9.8 m/s', correct: false },
-      { text: '15 m/s', correct: false },
-      { text: '44.1 m/s', correct: false }
+      { text: '5 segundos', correct: true },
+      { text: '180 segundos', correct: false },
+      { text: '6 segundos', correct: false },
+      { text: '10 segundos', correct: false }
     ],
-    explanation: 'En caída libre v = g · t = 9.8 m/s² · 3 s = 29.4 m/s.'
+    explanation: 'Como se detiene v_f = 0. t = (v_f - v_0) / a = (0 - 30) / (-6) = 5 segundos.'
   },
   {
     id: 5,
-    question: 'Según la Ley de Ohm, si duplicamos el voltaje en un circuito manteniendo la resistencia constante, ¿qué sucede con la corriente?',
+    question: 'Dos automóviles separados por 500 metros viajan uno hacia el otro en MRU a 20 m/s y 30 m/s. ¿En cuántos segundos se cruzan?',
     options: [
-      { text: 'Se duplica', correct: true },
-      { text: 'Se reduce a la mitad', correct: false },
-      { text: 'Permanece igual', correct: false },
-      { text: 'Se cuadruplica', correct: false }
+      { text: '10 segundos', correct: true },
+      { text: '25 segundos', correct: false },
+      { text: '50 segundos', correct: false },
+      { text: '5 segundos', correct: false }
     ],
-    explanation: 'I = V / R. Al duplicar el voltaje V, la corriente I también se duplica de forma directamente proporcional.'
+    explanation: 'Tiempo de encuentro: t_e = D / (v1 + v2) = 500 / (20 + 30) = 500 / 50 = 10 segundos.'
   }
 ];
 
@@ -103,7 +102,7 @@ export default function PracticeQuiz() {
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.85rem' }}>
             <span className="solution-tag">
-              <Award size={14} /> Pregunta {currentIdx + 1} de {QUIZ_QUESTIONS.length}
+              <Award size={14} /> Quiz MRU & MRUV — Pregunta {currentIdx + 1} de {QUIZ_QUESTIONS.length}
             </span>
             <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--accent-cyan)' }}>
               Puntaje: {score} pts
@@ -163,17 +162,16 @@ export default function PracticeQuiz() {
           )}
         </>
       ) : (
-        /* Pantalla de Fin de Quiz */
         <div style={{ textAlign: 'center', padding: '1.5rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
           <Sparkles size={48} color="var(--accent-purple)" />
-          <h2 style={{ fontSize: '1.6rem' }}>¡Quiz Completado! 🏆</h2>
+          <h2 style={{ fontSize: '1.6rem' }}>¡Desafío MRU/MRUV Completado! 🏆</h2>
           <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)' }}>
             Obtuviste <strong style={{ color: 'var(--accent-cyan)' }}>{score} de {QUIZ_QUESTIONS.length}</strong> respuestas correctas.
           </p>
 
           <div style={{ background: 'rgba(168, 85, 247, 0.1)', padding: '1.25rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--accent-purple)', maxWidth: '400px' }}>
             <p style={{ fontSize: '0.92rem', color: '#f8fafc', fontStyle: 'italic' }}>
-              "¡Recuerda que la física es el lenguaje con el que entendemos el universo! Sigue practicando 🫶" — Anto
+              "¡Dominas los conceptos de movimiento y aceleración como todo un experto! Sigue practicando 🫶" — Anto
             </p>
           </div>
 

@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Activity, Eye, Zap, Layers } from 'lucide-react';
+import { Play, Pause, RotateCcw, Layers } from 'lucide-react';
 
 export default function PhysicsVisualizer() {
-  const [mode, setMode] = useState('mru'); // 'mru', 'caida', 'vectors'
+  const [mode, setMode] = useState('mru'); // 'mru', 'frenado', 'encuentro'
 
   // Parametros de simulación
   const [v0, setV0] = useState(20);
   const [acc, setAcc] = useState(2);
-  const [gravity, setGravity] = useState(9.8);
-  const [mass, setMass] = useState(10);
-  const [appliedForce, setAppliedForce] = useState(50);
-  const [frictionCoef, setFrictionCoef] = useState(0.2);
+  const [v1, setV1] = useState(25);
+  const [v2, setV2] = useState(35);
+  const [distInicial, setDistInicial] = useState(600);
 
   // Control de animación
   const [isRunning, setIsRunning] = useState(false);
@@ -20,13 +19,11 @@ export default function PhysicsVisualizer() {
   const requestRef = useRef(null);
   const lastTimeRef = useRef(null);
 
-  // Reiniciar animación
   const handleReset = () => {
     setIsRunning(false);
     setTime(0);
   };
 
-  // Loop de simulación 60 FPS
   useEffect(() => {
     const animate = (now) => {
       if (lastTimeRef.current != null && isRunning) {
@@ -50,7 +47,6 @@ export default function PhysicsVisualizer() {
     };
   }, [isRunning]);
 
-  // Dibujo en Canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -58,7 +54,6 @@ export default function PhysicsVisualizer() {
     const width = canvas.width;
     const height = canvas.height;
 
-    // Limpiar canvas
     ctx.clearRect(0, 0, width, height);
 
     // Fondo grid cibernético
@@ -82,19 +77,19 @@ export default function PhysicsVisualizer() {
     }
 
     if (mode === 'mru') {
-      drawMRUSimulation(ctx, width, height, time, v0, acc);
-    } else if (mode === 'caida') {
-      drawCaidaSimulation(ctx, width, height, time, v0, gravity);
-    } else if (mode === 'vectors') {
-      drawVectorSimulation(ctx, width, height, mass, appliedForce, frictionCoef);
+      drawMRUMotion(ctx, width, height, time, v0, acc);
+    } else if (mode === 'frenado') {
+      drawFrenadoMotion(ctx, width, height, time, v0, Math.abs(acc));
+    } else if (mode === 'encuentro') {
+      drawEncuentroMotion(ctx, width, height, time, v1, v2, distInicial);
     }
-  }, [mode, time, v0, acc, gravity, mass, appliedForce, frictionCoef]);
+  }, [mode, time, v0, acc, v1, v2, distInicial]);
 
-  // 1. Dibujar Simulación MRU / MRUV
-  const drawMRUSimulation = (ctx, width, height, t, v0Val, aVal) => {
-    const trackY = height - 100;
+  // 1. Simulación de MRU y MRUV
+  const drawMRUMotion = (ctx, width, height, t, v0Val, aVal) => {
+    const trackY = height - 120;
 
-    // Pista de carreras
+    // Pista
     ctx.fillStyle = '#1e293b';
     ctx.fillRect(0, trackY, width, 80);
     ctx.strokeStyle = '#06b6d4';
@@ -104,7 +99,6 @@ export default function PhysicsVisualizer() {
     ctx.lineTo(width, trackY);
     ctx.stroke();
 
-    // Líneas divisoras de pista
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.lineWidth = 2;
     ctx.setLineDash([20, 15]);
@@ -114,12 +108,12 @@ export default function PhysicsVisualizer() {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Cálculo de posición x(t) = v0*t + 0.5*a*t^2
     const currentV = v0Val + aVal * t;
-    const posX = (v0Val * t + 0.5 * aVal * t * t) * 8 % (width - 120) + 40;
+    const distReal = v0Val * t + 0.5 * aVal * t * t;
+    const posX = (distReal * 6) % (width - 100) + 30;
     const carY = trackY - 24;
 
-    // Autos 2D Stylized
+    // Auto deportivo en MRUV
     ctx.fillStyle = '#a855f7';
     ctx.beginPath();
     ctx.roundRect(posX, carY, 60, 24, 8);
@@ -132,138 +126,126 @@ export default function PhysicsVisualizer() {
     ctx.arc(posX + 46, carY + 24, 7, 0, Math.PI * 2);
     ctx.fill();
 
-    // Vector Velocidad (Cian)
-    ctx.strokeStyle = '#06b6d4';
-    ctx.fillStyle = '#06b6d4';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(posX + 60, carY + 12);
-    ctx.lineTo(posX + 60 + Math.min(currentV * 2, 90), carY + 12);
-    ctx.stroke();
-
-    // Flecha de vector
-    ctx.beginPath();
-    ctx.moveTo(posX + 60 + Math.min(currentV * 2, 90), carY + 7);
-    ctx.lineTo(posX + 68 + Math.min(currentV * 2, 90), carY + 12);
-    ctx.lineTo(posX + 60 + Math.min(currentV * 2, 90), carY + 17);
-    ctx.fill();
-
-    // Telemetría en tiempo real
-    ctx.fillStyle = '#fff';
-    ctx.font = '600 14px "Plus Jakarta Sans"';
-    ctx.fillText(`Tiempo (t): ${t.toFixed(2)} s`, 20, 35);
-    ctx.fillText(`Velocidad (v): ${currentV.toFixed(2)} m/s`, 20, 60);
-    ctx.fillText(`Aceleración (a): ${aVal.toFixed(2)} m/s²`, 20, 85);
-  };
-
-  // 2. Dibujar Caída Libre / Tiro Vertical
-  const drawCaidaSimulation = (ctx, width, height, t, v0Val, gVal) => {
-    const groundY = height - 50;
-    const startY = 80;
-    const maxDropHeight = groundY - startY;
-
-    // Suelo
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, groundY, width, 50);
-    ctx.strokeStyle = '#10b981';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(0, groundY);
-    ctx.lineTo(width, groundY);
-    ctx.stroke();
-
-    // Cálculo de posición y(t) = v0*t - 0.5*g*t^2
-    const deltaY = (v0Val * t - 0.5 * gVal * t * t) * 6;
-    let ballY = groundY - 25 - deltaY;
-
-    // Rebote / choque con suelo
-    if (ballY >= groundY - 25) {
-      ballY = groundY - 25;
-    }
-
-    const currentV = v0Val - gVal * t;
-
-    // Balón 2D
-    const ballX = width / 2;
-    ctx.fillStyle = '#ec4899';
-    ctx.shadowColor = '#ec4899';
-    ctx.shadowBlur = 15;
-    ctx.beginPath();
-    ctx.arc(ballX, ballY, 18, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // Vector Gravedad g (Verde)
-    ctx.strokeStyle = '#10b981';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(ballX, ballY);
-    ctx.lineTo(ballX, ballY + 45);
-    ctx.stroke();
+    // Vector Velocidad
+    drawVectorArrow(ctx, posX + 60, carY + 12, posX + 60 + Math.min(currentV * 2, 100), carY + 12, '#06b6d4', `v = ${currentV.toFixed(1)} m/s`);
 
     // Telemetría
     ctx.fillStyle = '#fff';
     ctx.font = '600 14px "Plus Jakarta Sans"';
-    ctx.fillText(`Gravedad (g): ${gVal} m/s²`, 20, 35);
-    ctx.fillText(`Tiempo (t): ${t.toFixed(2)} s`, 20, 60);
-    ctx.fillText(`Velocidad instantánea: ${currentV.toFixed(2)} m/s`, 20, 85);
+    ctx.fillText(`Tiempo (t): ${t.toFixed(2)} s`, 20, 35);
+    ctx.fillText(`Velocidad (v): ${currentV.toFixed(2)} m/s (${(currentV * 3.6).toFixed(1)} km/h)`, 20, 60);
+    ctx.fillText(`Aceleración (a): ${aVal.toFixed(2)} m/s²`, 20, 85);
+    ctx.fillText(`Distancia recorrida (d): ${distReal.toFixed(2)} m`, 20, 110);
   };
 
-  // 3. Dibujar Diagrama de Cuerpo Libre (DCL)
-  const drawVectorSimulation = (ctx, width, height, mVal, FVal, muVal) => {
-    const centerX = width / 2;
-    const centerY = height / 2 + 20;
+  // 2. Simulación de Frenado
+  const drawFrenadoMotion = (ctx, width, height, t, desaceleracion) => {
+    const trackY = height - 120;
+    const vInit = 30;
+    const tFrenado = vInit / desaceleracion;
 
-    // Bloque central
-    const bWidth = 120;
-    const bHeight = 80;
-    const blockX = centerX - bWidth / 2;
-    const blockY = centerY - bHeight / 2;
+    let currentV = vInit - desaceleracion * t;
+    let distReal = vInit * t - 0.5 * desaceleracion * t * t;
 
-    // Suelo
+    if (t >= tFrenado) {
+      currentV = 0;
+      distReal = vInit * tFrenado - 0.5 * desaceleracion * tFrenado * tFrenado;
+    }
+
+    // Pista
     ctx.fillStyle = '#1e293b';
-    ctx.fillRect(50, centerY + bHeight / 2, width - 100, 20);
+    ctx.fillRect(0, trackY, width, 80);
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, trackY);
+    ctx.lineTo(width, trackY);
+    ctx.stroke();
 
-    // Bloque
-    ctx.fillStyle = 'rgba(168, 85, 247, 0.3)';
+    const posX = Math.min((distReal * 5) + 40, width - 100);
+    const carY = trackY - 24;
+
+    ctx.fillStyle = '#ec4899';
+    ctx.beginPath();
+    ctx.roundRect(posX, carY, 60, 24, 8);
+    ctx.fill();
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath();
+    ctx.arc(posX + 14, carY + 24, 7, 0, Math.PI * 2);
+    ctx.arc(posX + 46, carY + 24, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Vector Desaceleración (Hacia atrás en rojo)
+    if (currentV > 0) {
+      drawVectorArrow(ctx, posX, carY + 12, posX - 45, carY + 12, '#ef4444', `a = -${desaceleracion} m/s²`);
+    }
+
+    ctx.fillStyle = '#fff';
+    ctx.font = '600 14px "Plus Jakarta Sans"';
+    ctx.fillText(`Velocidad inicial (v₀): ${vInit} m/s`, 20, 35);
+    ctx.fillText(`Desaceleración (a): -${desaceleracion} m/s²`, 20, 60);
+    ctx.fillText(`Velocidad actual: ${currentV.toFixed(2)} m/s`, 20, 85);
+    ctx.fillText(`Distancia de frenado (d): ${distReal.toFixed(2)} m`, 20, 110);
+  };
+
+  // 3. Simulación de Encuentro de Móviles
+  const drawEncuentroMotion = (ctx, width, height, t, v1Val, v2Val, distTotal) => {
+    const trackY = height - 120;
+    const te = distTotal / (v1Val + v2Val);
+
+    let tActual = Math.min(t, te);
+    let posX1 = (v1Val * tActual / distTotal) * (width - 160) + 40;
+    let posX2 = (width - 120) - (v2Val * tActual / distTotal) * (width - 160);
+
+    // Pista
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, trackY, width, 80);
     ctx.strokeStyle = '#a855f7';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.roundRect(blockX, blockY, bWidth, bHeight, 10);
-    ctx.fill();
+    ctx.moveTo(0, trackY);
+    ctx.lineTo(width, trackY);
     ctx.stroke();
 
+    const carY = trackY - 24;
+
+    // Auto 1 (Púrpura)
+    ctx.fillStyle = '#a855f7';
+    ctx.beginPath();
+    ctx.roundRect(posX1, carY, 55, 22, 6);
+    ctx.fill();
+
+    // Auto 2 (Cian)
+    ctx.fillStyle = '#06b6d4';
+    ctx.beginPath();
+    ctx.roundRect(posX2, carY, 55, 22, 6);
+    ctx.fill();
+
+    // Icono de choque / encuentro si se cruzan
+    if (t >= te) {
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 28px Outfit';
+      ctx.fillText('💥 ¡Punto de Encuentro!', width / 2 - 140, carY - 20);
+    }
+
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 16px Outfit';
-    ctx.textAlign = 'center';
-    ctx.fillText(`m = ${mVal} kg`, centerX, centerY + 5);
-
-    // 1. Peso P = m*g (Hacia abajo - Rosa)
-    const P = mVal * 9.8;
-    drawArrow(ctx, centerX, centerY, centerX, centerY + 110, '#ec4899', `P = ${P.toFixed(0)} N`);
-
-    // 2. Normal N = P (Hacia arriba - Cian)
-    drawArrow(ctx, centerX, centerY, centerX, centerY - 110, '#06b6d4', `N = ${P.toFixed(0)} N`);
-
-    // 3. Fuerza Aplicada F (Hacia la derecha - Ámbar)
-    drawArrow(ctx, centerX, centerY, centerX + Math.min(FVal * 1.8, 140), centerY, '#f59e0b', `F = ${FVal} N`);
-
-    // 4. Fuerza de Rozamiento f_r = mu * N (Hacia la izquierda - Esmeralda)
-    const fr = muVal * P;
-    drawArrow(ctx, centerX, centerY, centerX - Math.min(fr * 1.8, 120), centerY, '#10b981', `f_r = ${fr.toFixed(1)} N`);
-
-    ctx.textAlign = 'left';
+    ctx.font = '600 14px "Plus Jakarta Sans"';
+    ctx.fillText(`Distancia entre autos (D): ${distTotal} m`, 20, 35);
+    ctx.fillText(`Auto 1 (Morado): v₁ = ${v1Val} m/s`, 20, 60);
+    ctx.fillText(`Auto 2 (Cian): v₂ = ${v2Val} m/s`, 20, 85);
+    ctx.fillText(`Tiempo de encuentro calculado: ${te.toFixed(2)} s`, 20, 110);
   };
 
-  const drawArrow = (ctx, fromX, fromY, toX, toY, color, label) => {
-    const headlen = 12;
+  const drawVectorArrow = (ctx, fromX, fromY, toX, toY, color, label) => {
+    const headlen = 10;
     const dx = toX - fromX;
     const dy = toY - fromY;
     const angle = Math.atan2(dy, dx);
 
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
-    ctx.lineWidth = 3.5;
+    ctx.lineWidth = 3;
 
     ctx.beginPath();
     ctx.moveTo(fromX, fromY);
@@ -276,8 +258,8 @@ export default function PhysicsVisualizer() {
     ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
     ctx.fill();
 
-    ctx.font = '600 13px "Plus Jakarta Sans"';
-    ctx.fillText(label, toX + 8, toY - 8);
+    ctx.font = '600 12px "Plus Jakarta Sans"';
+    ctx.fillText(label, toX + 5, toY - 5);
   };
 
   return (
@@ -286,7 +268,6 @@ export default function PhysicsVisualizer() {
       <div className="glass-panel canvas-wrapper">
         <canvas ref={canvasRef} width={760} height={480} />
 
-        {/* Overlay de Controles */}
         <div className="canvas-overlay-controls">
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button
@@ -312,11 +293,11 @@ export default function PhysicsVisualizer() {
         </div>
       </div>
 
-      {/* Sidebar de Configuración de la Simulación */}
+      {/* Sidebar de Modos MRU / MRUV */}
       <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         <h3 style={{ fontSize: '1.1rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Layers size={20} color="var(--accent-cyan)" />
-          Modos de Simulación 2D
+          Simuladores MRU & MRUV
         </h3>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -324,25 +305,25 @@ export default function PhysicsVisualizer() {
             className={`topic-btn ${mode === 'mru' ? 'active' : ''}`}
             onClick={() => { setMode('mru'); handleReset(); }}
           >
-            🏎️ Movimiento Rectilíneo (MRU/MRUV)
+            🏎️ Movimiento Acelerado (MRUV)
           </button>
           <button
-            className={`topic-btn ${mode === 'caida' ? 'active' : ''}`}
-            onClick={() => { setMode('caida'); handleReset(); }}
+            className={`topic-btn ${mode === 'frenado' ? 'active' : ''}`}
+            onClick={() => { setMode('frenado'); handleReset(); }}
           >
-            🍎 Caída Libre y Gravedad
+            🛑 Frenado y Desaceleración
           </button>
           <button
-            className={`topic-btn ${mode === 'vectors' ? 'active' : ''}`}
-            onClick={() => { setMode('vectors'); handleReset(); }}
+            className={`topic-btn ${mode === 'encuentro' ? 'active' : ''}`}
+            onClick={() => { setMode('encuentro'); handleReset(); }}
           >
-            📦 Diagrama de Cuerpo Libre (DCL)
+            🔀 Encuentro de 2 Móviles (MRU)
           </button>
         </div>
 
         <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '1rem' }}>
           <h4 style={{ fontSize: '0.9rem', color: 'var(--accent-purple)', marginBottom: '0.85rem' }}>
-            Parámetros en Tiempo Real
+            Parámetros Editables
           </h4>
 
           {mode === 'mru' && (
@@ -353,42 +334,33 @@ export default function PhysicsVisualizer() {
               </div>
               <div className="input-field-group">
                 <label>Aceleración (a): {acc} m/s²</label>
-                <input type="range" min="-5" max="10" value={acc} onChange={(e) => setAcc(Number(e.target.value))} />
+                <input type="range" min="0" max="10" value={acc} onChange={(e) => setAcc(Number(e.target.value))} />
               </div>
             </div>
           )}
 
-          {mode === 'caida' && (
+          {mode === 'frenado' && (
             <div className="inputs-grid" style={{ gridTemplateColumns: '1fr' }}>
               <div className="input-field-group">
-                <label>Aceleración de Gravedad: {gravity} m/s²</label>
-                <select
-                  style={{ background: '#020617', color: '#fff', padding: '0.6rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}
-                  value={gravity}
-                  onChange={(e) => setGravity(Number(e.target.value))}
-                >
-                  <option value={9.8}>🌎 Tierra (9.8 m/s²)</option>
-                  <option value={1.62}>🌕 Luna (1.62 m/s²)</option>
-                  <option value={3.72}>🔴 Marte (3.72 m/s²)</option>
-                  <option value={24.79}>🪐 Júpiter (24.79 m/s²)</option>
-                </select>
+                <label>Velocidad Inicial (v₀): {v0} m/s</label>
+                <input type="range" min="10" max="60" value={v0} onChange={(e) => setV0(Number(e.target.value))} />
+              </div>
+              <div className="input-field-group">
+                <label>Tasa de Frenado (-a): {acc} m/s²</label>
+                <input type="range" min="1" max="10" value={acc} onChange={(e) => setAcc(Number(e.target.value))} />
               </div>
             </div>
           )}
 
-          {mode === 'vectors' && (
+          {mode === 'encuentro' && (
             <div className="inputs-grid" style={{ gridTemplateColumns: '1fr' }}>
               <div className="input-field-group">
-                <label>Masa (m): {mass} kg</label>
-                <input type="range" min="1" max="50" value={mass} onChange={(e) => setMass(Number(e.target.value))} />
+                <label>Velocidad Auto 1: {v1} m/s</label>
+                <input type="range" min="5" max="50" value={v1} onChange={(e) => setV1(Number(e.target.value))} />
               </div>
               <div className="input-field-group">
-                <label>Fuerza Aplicada (F): {appliedForce} N</label>
-                <input type="range" min="0" max="200" value={appliedForce} onChange={(e) => setAppliedForce(Number(e.target.value))} />
-              </div>
-              <div className="input-field-group">
-                <label>Coeficiente de Fricción (μ): {frictionCoef}</label>
-                <input type="range" min="0" max="1" step="0.05" value={frictionCoef} onChange={(e) => setFrictionCoef(Number(e.target.value))} />
+                <label>Velocidad Auto 2: {v2} m/s</label>
+                <input type="range" min="5" max="50" value={v2} onChange={(e) => setV2(Number(e.target.value))} />
               </div>
             </div>
           )}

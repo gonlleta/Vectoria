@@ -1,31 +1,23 @@
 import React, { useState } from 'react';
-import { Calculator, ArrowRight, Zap, RefreshCw, Sparkles, Send } from 'lucide-react';
+import { Calculator, ArrowRight, Send, Car, Zap, Flag } from 'lucide-react';
 import { renderBlockLatex } from '../utils/katexRender';
 
 export default function PhysicsCalculators({ onSendToAnto }) {
   const [activeTopic, setActiveTopic] = useState('mru');
 
-  // Estados de insumos para calculadoras
+  // Estados de calculadoras especializadas
   const [mru, setMru] = useState({ d: '100', v: '20', t: '5' });
-  const [mruv, setMruv] = useState({ v0: '0', vf: '30', a: '6', t: '5' });
-  const [caida, setCaida] = useState({ h: '45', g: '9.8' });
-  const [newton, setNewton] = useState({ m: '12', a: '4' });
-  const [peso, setPeso] = useState({ m: '70', g: '9.8' });
-  const [ek, setEk] = useState({ m: '1000', v: '25' });
-  const [ep, setEp] = useState({ m: '15', h: '10', g: '9.8' });
-  const [presion, setPresion] = useState({ F: '500', A: '2' });
-  const [ohm, setOhm] = useState({ V: '12', R: '4' });
+  const [mruvAceleracion, setMruvAceleracion] = useState({ v0: '0', vf: '25', t: '5' });
+  const [mruvDistancia, setMruvDistancia] = useState({ v0: '10', a: '2', t: '4' });
+  const [mruvTorricelli, setMruvTorricelli] = useState({ v0: '0', a: '3', d: '150' });
+  const [encuentro, setEncuentro] = useState({ D: '600', v1: '20', v2: '30' });
 
   const topics = [
-    { id: 'mru', title: 'MRU (Velocidad Constante)', formula: 'v = \\frac{d}{t}', icon: '🚗' },
-    { id: 'mruv', title: 'MRUV (Aceleración)', formula: 'a = \\frac{v_f - v_0}{t}', icon: '🏎️' },
-    { id: 'caida', title: 'Caída Libre / Tiro Vertical', formula: 'h = \\frac{1}{2} g t^2', icon: '🍎' },
-    { id: 'newton', title: '2ª Ley de Newton', formula: 'F = m \\cdot a', icon: '📦' },
-    { id: 'peso', title: 'Peso Gravitatorio', formula: 'P = m \\cdot g', icon: '⚖️' },
-    { id: 'ek', title: 'Energía Cinética', formula: 'E_k = \\frac{1}{2} m v^2', icon: '⚡' },
-    { id: 'ep', title: 'Energía Potencial', formula: 'E_p = m \\cdot g \\cdot h', icon: '⛰️' },
-    { id: 'presion', title: 'Presión Hidrostática', formula: 'P = \\frac{F}{A}', icon: '🌊' },
-    { id: 'ohm', title: 'Ley de Ohm', formula: 'V = I \\cdot R', icon: '💡' },
+    { id: 'mru', title: 'MRU - Velocidad Constante', formula: 'v = \\frac{d}{t}', icon: '🚗' },
+    { id: 'mruvAceleracion', title: 'MRUV - Aceleración (a)', formula: 'a = \\frac{v_f - v_0}{t}', icon: '🏎️' },
+    { id: 'mruvDistancia', title: 'MRUV - Distancia (d)', formula: 'd = v_0 t + \\frac{1}{2}a t^2', icon: '🏁' },
+    { id: 'mruvTorricelli', title: 'MRUV - Ecuación de Torricelli', formula: 'v_f^2 = v_0^2 + 2ad', icon: '🛑' },
+    { id: 'encuentro', title: 'MRU - Encuentro de 2 Móviles', formula: 't_e = \\frac{D}{v_1 + v_2}', icon: '🔀' },
   ];
 
   const handleSendQuery = (text) => {
@@ -36,11 +28,11 @@ export default function PhysicsCalculators({ onSendToAnto }) {
 
   return (
     <div className="calculators-grid">
-      {/* Selector de Temas */}
+      {/* Selector de Temas MRU & MRUV */}
       <div className="topic-selector glass-panel" style={{ padding: '1.25rem' }}>
         <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Calculator size={20} color="var(--accent-purple)" />
-          Herramientas de Cálculo
+          Calculadoras MRU y MRUV
         </h3>
         {topics.map((t) => (
           <button
@@ -59,15 +51,15 @@ export default function PhysicsCalculators({ onSendToAnto }) {
 
       {/* Panel de Calculadora Seleccionada */}
       <div className="glass-panel calculator-panel">
-        {/* MRU */}
+        {/* 1. MRU */}
         {activeTopic === 'mru' && (
           <div>
-            <h3 style={{ fontSize: '1.3rem', marginBottom: '0.3rem' }}>🚗 Movimiento Rectilíneo Uniforme (MRU)</h3>
+            <h3 style={{ fontSize: '1.3rem', marginBottom: '0.3rem' }}>🚗 MRU - Velocidad Constante</h3>
             <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-              Calcula la velocidad, distancia o tiempo cuando la velocidad permanece constante sin aceleración.
+              Calcula velocidad, distancia o tiempo sin aceleración.
             </p>
 
-            <div className="formula-box" style={{ marginBottom: '1.5rem' }} dangerouslySetInnerHTML={{ __html: renderBlockLatex('v = \\frac{d}{t} \\quad | \\quad d = v \\cdot t') }} />
+            <div className="formula-box" style={{ marginBottom: '1.5rem' }} dangerouslySetInnerHTML={{ __html: renderBlockLatex('v = \\frac{d}{t} \\quad | \\quad d = v \\cdot t \\quad | \\quad t = \\frac{d}{v}') }} />
 
             <div className="inputs-grid">
               <div className="input-field-group">
@@ -80,11 +72,10 @@ export default function PhysicsCalculators({ onSendToAnto }) {
               </div>
             </div>
 
-            {/* Resultado calculado */}
             {parseFloat(mru.t) > 0 && (
               <div className="result-box" style={{ marginTop: '1.5rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Velocidad Calculada (v)</div>
+                  <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Velocidad Constante (v)</div>
                   <div className="result-val">{(parseFloat(mru.d) / parseFloat(mru.t)).toFixed(2)} m/s</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                     Equivale a {((parseFloat(mru.d) / parseFloat(mru.t)) * 3.6).toFixed(2)} km/h
@@ -92,7 +83,7 @@ export default function PhysicsCalculators({ onSendToAnto }) {
                 </div>
                 <button
                   className="btn-primary"
-                  onClick={() => handleSendQuery(`Un objeto recorre ${mru.d} metros en ${mru.t} segundos. ¿Cuál es su velocidad?`)}
+                  onClick={() => handleSendQuery(`Un objeto en MRU recorre ${mru.d} metros en ${mru.t} segundos. ¿Cuál es su velocidad?`)}
                 >
                   <Send size={16} /> Preguntar a Anto 🫶
                 </button>
@@ -101,43 +92,40 @@ export default function PhysicsCalculators({ onSendToAnto }) {
           </div>
         )}
 
-        {/* MRUV */}
-        {activeTopic === 'mruv' && (
+        {/* 2. MRUV - Aceleración */}
+        {activeTopic === 'mruvAceleracion' && (
           <div>
-            <h3 style={{ fontSize: '1.3rem', marginBottom: '0.3rem' }}>🏎️ MRUV (Movimiento Acelerado)</h3>
+            <h3 style={{ fontSize: '1.3rem', marginBottom: '0.3rem' }}>🏎️ MRUV - Cálculo de Aceleración</h3>
             <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-              Calcula el cambio de velocidad por unidad de tiempo (aceleración).
+              Calcula la tasa de cambio de velocidad por segundo.
             </p>
 
-            <div className="formula-box" style={{ marginBottom: '1.5rem' }} dangerouslySetInnerHTML={{ __html: renderBlockLatex('a = \\frac{v_f - v_0}{t} \\quad | \\quad d = v_0 t + \\frac{1}{2}a t^2') }} />
+            <div className="formula-box" style={{ marginBottom: '1.5rem' }} dangerouslySetInnerHTML={{ __html: renderBlockLatex('a = \\frac{v_f - v_0}{t}') }} />
 
             <div className="inputs-grid">
               <div className="input-field-group">
                 <label>Velocidad inicial (v₀) <span>m/s</span></label>
-                <input type="number" value={mruv.v0} onChange={(e) => setMruv({ ...mruv, v0: e.target.value })} />
+                <input type="number" value={mruvAceleracion.v0} onChange={(e) => setMruvAceleracion({ ...mruvAceleracion, v0: e.target.value })} />
               </div>
               <div className="input-field-group">
                 <label>Velocidad final (v_f) <span>m/s</span></label>
-                <input type="number" value={mruv.vf} onChange={(e) => setMruv({ ...mruv, vf: e.target.value })} />
+                <input type="number" value={mruvAceleracion.vf} onChange={(e) => setMruvAceleracion({ ...mruvAceleracion, vf: e.target.value })} />
               </div>
               <div className="input-field-group">
-                <label>Tiempo (t) <span>s</span></label>
-                <input type="number" value={mruv.t} onChange={(e) => setMruv({ ...mruv, t: e.target.value })} />
+                <label>Tiempo (t) <span>segundos</span></label>
+                <input type="number" value={mruvAceleracion.t} onChange={(e) => setMruvAceleracion({ ...mruvAceleracion, t: e.target.value })} />
               </div>
             </div>
 
-            {parseFloat(mruv.t) > 0 && (
+            {parseFloat(mruvAceleracion.t) > 0 && (
               <div className="result-box" style={{ marginTop: '1.5rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Aceleración Calculada (a)</div>
-                  <div className="result-val">{((parseFloat(mruv.vf) - parseFloat(mruv.v0)) / parseFloat(mruv.t)).toFixed(2)} m/s²</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Distancia recorrida: {((parseFloat(mruv.v0) * parseFloat(mruv.t)) + 0.5 * ((parseFloat(mruv.vf) - parseFloat(mruv.v0)) / parseFloat(mruv.t)) * Math.pow(parseFloat(mruv.t), 2)).toFixed(2)} m
-                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Aceleración (a)</div>
+                  <div className="result-val">{((parseFloat(mruvAceleracion.vf) - parseFloat(mruvAceleracion.v0)) / parseFloat(mruvAceleracion.t)).toFixed(2)} m/s²</div>
                 </div>
                 <button
                   className="btn-primary"
-                  onClick={() => handleSendQuery(`Un auto pasa de ${mruv.v0} m/s a ${mruv.vf} m/s en ${mruv.t} segundos. ¿Cuál es su aceleración?`)}
+                  onClick={() => handleSendQuery(`En MRUV, un móvil pasa de ${mruvAceleracion.v0} m/s a ${mruvAceleracion.vf} m/s en ${mruvAceleracion.t} s. ¿Cuál es la aceleración?`)}
                 >
                   <Send size={16} /> Preguntar a Anto 🫶
                 </button>
@@ -146,35 +134,41 @@ export default function PhysicsCalculators({ onSendToAnto }) {
           </div>
         )}
 
-        {/* 2da Ley de Newton */}
-        {activeTopic === 'newton' && (
+        {/* 3. MRUV - Distancia */}
+        {activeTopic === 'mruvDistancia' && (
           <div>
-            <h3 style={{ fontSize: '1.3rem', marginBottom: '0.3rem' }}>📦 2ª Ley de Newton</h3>
+            <h3 style={{ fontSize: '1.3rem', marginBottom: '0.3rem' }}>🏁 MRUV - Distancia Recorrida</h3>
             <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-              Calcula la fuerza requerida para acelerar un cuerpo de cierta masa.
+              Calcula el espacio recorrido con aceleración constante en cierto tiempo.
             </p>
 
-            <div className="formula-box" style={{ marginBottom: '1.5rem' }} dangerouslySetInnerHTML={{ __html: renderBlockLatex('F = m \\cdot a') }} />
+            <div className="formula-box" style={{ marginBottom: '1.5rem' }} dangerouslySetInnerHTML={{ __html: renderBlockLatex('d = v_0 t + \\frac{1}{2} a t^2') }} />
 
             <div className="inputs-grid">
               <div className="input-field-group">
-                <label>Masa (m) <span>en kg</span></label>
-                <input type="number" value={newton.m} onChange={(e) => setNewton({ ...newton, m: e.target.value })} />
+                <label>Velocidad inicial (v₀) <span>m/s</span></label>
+                <input type="number" value={mruvDistancia.v0} onChange={(e) => setMruvDistancia({ ...mruvDistancia, v0: e.target.value })} />
               </div>
               <div className="input-field-group">
-                <label>Aceleración (a) <span>en m/s²</span></label>
-                <input type="number" value={newton.a} onChange={(e) => setNewton({ ...newton, a: e.target.value })} />
+                <label>Aceleración (a) <span>m/s²</span></label>
+                <input type="number" value={mruvDistancia.a} onChange={(e) => setMruvDistancia({ ...mruvDistancia, a: e.target.value })} />
+              </div>
+              <div className="input-field-group">
+                <label>Tiempo (t) <span>s</span></label>
+                <input type="number" value={mruvDistancia.t} onChange={(e) => setMruvDistancia({ ...mruvDistancia, t: e.target.value })} />
               </div>
             </div>
 
             <div className="result-box" style={{ marginTop: '1.5rem' }}>
               <div>
-                <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Fuerza Resultante (F)</div>
-                <div className="result-val">{(parseFloat(newton.m) * parseFloat(newton.a)).toFixed(2)} N</div>
+                <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Distancia Recorrida (d)</div>
+                <div className="result-val">
+                  {((parseFloat(mruvDistancia.v0) * parseFloat(mruvDistancia.t)) + 0.5 * parseFloat(mruvDistancia.a) * Math.pow(parseFloat(mruvDistancia.t), 2)).toFixed(2)} m
+                </div>
               </div>
               <button
                 className="btn-primary"
-                onClick={() => handleSendQuery(`¿Qué fuerza se necesita para acelerar un bloque de ${newton.m} kg a ${newton.a} m/s²?`)}
+                onClick={() => handleSendQuery(`En MRUV con v₀=${mruvDistancia.v0} m/s y a=${mruvDistancia.a} m/s², ¿qué distancia recorre en ${mruvDistancia.t} segundos?`)}
               >
                 <Send size={16} /> Preguntar a Anto 🫶
               </button>
@@ -182,35 +176,41 @@ export default function PhysicsCalculators({ onSendToAnto }) {
           </div>
         )}
 
-        {/* Energía Cinética */}
-        {activeTopic === 'ek' && (
+        {/* 4. Torricelli */}
+        {activeTopic === 'mruvTorricelli' && (
           <div>
-            <h3 style={{ fontSize: '1.3rem', marginBottom: '0.3rem' }}>⚡ Energía Cinética (E_k)</h3>
+            <h3 style={{ fontSize: '1.3rem', marginBottom: '0.3rem' }}>🛑 MRUV - Ecuación de Torricelli</h3>
             <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-              Calcula la energía asociada al movimiento de un cuerpo en Joules (J).
+              Calcula la velocidad final sin necesitar el parámetro tiempo.
             </p>
 
-            <div className="formula-box" style={{ marginBottom: '1.5rem' }} dangerouslySetInnerHTML={{ __html: renderBlockLatex('E_k = \\frac{1}{2} m v^2') }} />
+            <div className="formula-box" style={{ marginBottom: '1.5rem' }} dangerouslySetInnerHTML={{ __html: renderBlockLatex('v_f = \\sqrt{v_0^2 + 2 a d}') }} />
 
             <div className="inputs-grid">
               <div className="input-field-group">
-                <label>Masa (m) <span>en kg</span></label>
-                <input type="number" value={ek.m} onChange={(e) => setEk({ ...ek, m: e.target.value })} />
+                <label>Velocidad inicial (v₀) <span>m/s</span></label>
+                <input type="number" value={mruvTorricelli.v0} onChange={(e) => setMruvTorricelli({ ...mruvTorricelli, v0: e.target.value })} />
               </div>
               <div className="input-field-group">
-                <label>Velocidad (v) <span>en m/s</span></label>
-                <input type="number" value={ek.v} onChange={(e) => setEk({ ...ek, v: e.target.value })} />
+                <label>Aceleración (a) <span>m/s²</span></label>
+                <input type="number" value={mruvTorricelli.a} onChange={(e) => setMruvTorricelli({ ...mruvTorricelli, a: e.target.value })} />
+              </div>
+              <div className="input-field-group">
+                <label>Distancia (d) <span>m</span></label>
+                <input type="number" value={mruvTorricelli.d} onChange={(e) => setMruvTorricelli({ ...mruvTorricelli, d: e.target.value })} />
               </div>
             </div>
 
             <div className="result-box" style={{ marginTop: '1.5rem' }}>
               <div>
-                <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Energía Cinética (E_k)</div>
-                <div className="result-val">{(0.5 * parseFloat(ek.m) * Math.pow(parseFloat(ek.v), 2)).toFixed(2)} J</div>
+                <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Velocidad Final (v_f)</div>
+                <div className="result-val">
+                  {Math.sqrt(Math.pow(parseFloat(mruvTorricelli.v0), 2) + 2 * parseFloat(mruvTorricelli.a) * parseFloat(mruvTorricelli.d)).toFixed(2)} m/s
+                </div>
               </div>
               <button
                 className="btn-primary"
-                onClick={() => handleSendQuery(`¿Cuál es la energía cinética de una masa de ${ek.m} kg que se mueve a ${ek.v} m/s?`)}
+                onClick={() => handleSendQuery(`En MRUV, un cuerpo con v₀=${mruvTorricelli.v0} m/s y a=${mruvTorricelli.a} m/s² recorre ${mruvTorricelli.d} m. ¿Cuál es su velocidad final?`)}
               >
                 <Send size={16} /> Preguntar a Anto 🫶
               </button>
@@ -218,39 +218,45 @@ export default function PhysicsCalculators({ onSendToAnto }) {
           </div>
         )}
 
-        {/* Ley de Ohm */}
-        {activeTopic === 'ohm' && (
+        {/* 5. Encuentro de Móviles */}
+        {activeTopic === 'encuentro' && (
           <div>
-            <h3 style={{ fontSize: '1.3rem', marginBottom: '0.3rem' }}>💡 Ley de Ohm (Circuitos)</h3>
+            <h3 style={{ fontSize: '1.3rem', marginBottom: '0.3rem' }}>🔀 MRU - Encuentro de Dos Móviles</h3>
             <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-              Relación entre voltaje, corriente y resistencia eléctrica.
+              Calcula el tiempo y el punto donde se cruzan dos autos en movimiento rectilíneo.
             </p>
 
-            <div className="formula-box" style={{ marginBottom: '1.5rem' }} dangerouslySetInnerHTML={{ __html: renderBlockLatex('V = I \\cdot R \\quad | \\quad I = \\frac{V}{R}') }} />
+            <div className="formula-box" style={{ marginBottom: '1.5rem' }} dangerouslySetInnerHTML={{ __html: renderBlockLatex('t_e = \\frac{D}{v_1 + v_2} \\quad | \\quad x_e = v_1 \\cdot t_e') }} />
 
             <div className="inputs-grid">
               <div className="input-field-group">
-                <label>Voltaje (V) <span>en Voltios (V)</span></label>
-                <input type="number" value={ohm.V} onChange={(e) => setOhm({ ...ohm, V: e.target.value })} />
+                <label>Distancia inicial entre autos (D) <span>m</span></label>
+                <input type="number" value={encuentro.D} onChange={(e) => setEncuentro({ ...encuentro, D: e.target.value })} />
               </div>
               <div className="input-field-group">
-                <label>Resistencia (R) <span>en Ohmios (Ω)</span></label>
-                <input type="number" value={ohm.R} onChange={(e) => setOhm({ ...ohm, R: e.target.value })} />
+                <label>Velocidad Auto 1 (v₁) <span>m/s</span></label>
+                <input type="number" value={encuentro.v1} onChange={(e) => setEncuentro({ ...encuentro, v1: e.target.value })} />
+              </div>
+              <div className="input-field-group">
+                <label>Velocidad Auto 2 (v₂) <span>m/s</span></label>
+                <input type="number" value={encuentro.v2} onChange={(e) => setEncuentro({ ...encuentro, v2: e.target.value })} />
               </div>
             </div>
 
-            {parseFloat(ohm.R) > 0 && (
+            {(parseFloat(encuentro.v1) + parseFloat(encuentro.v2)) > 0 && (
               <div className="result-box" style={{ marginTop: '1.5rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Corriente Eléctrica (I)</div>
-                  <div className="result-val">{(parseFloat(ohm.V) / parseFloat(ohm.R)).toFixed(2)} A</div>
+                  <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Tiempo de Encuentro (t_e)</div>
+                  <div className="result-val">
+                    {(parseFloat(encuentro.D) / (parseFloat(encuentro.v1) + parseFloat(encuentro.v2))).toFixed(2)} s
+                  </div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Potencia disipada: {(Math.pow(parseFloat(ohm.V), 2) / parseFloat(ohm.R)).toFixed(2)} W (Watts)
+                    Punto de encuentro: {(parseFloat(encuentro.v1) * (parseFloat(encuentro.D) / (parseFloat(encuentro.v1) + parseFloat(encuentro.v2)))).toFixed(2)} m del Auto 1
                   </div>
                 </div>
                 <button
                   className="btn-primary"
-                  onClick={() => handleSendQuery(`En un circuito con un voltaje de ${ohm.V} V y una resistencia de ${ohm.R} Ω, ¿cuál es la corriente eléctrica?`)}
+                  onClick={() => handleSendQuery(`Dos autos separados por ${encuentro.D} metros se mueven frente a frente a ${encuentro.v1} m/s y ${encuentro.v2} m/s. ¿Cuándo y dónde se encuentran?`)}
                 >
                   <Send size={16} /> Preguntar a Anto 🫶
                 </button>

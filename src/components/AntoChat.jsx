@@ -372,28 +372,32 @@ export default function AntoChat({ apiKey }) {
             Anto <span className="gradient-text">🫶</span>
           </h3>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-            IA Tutora de Física Básica con Visión 📷
+            IA Tutora Especialista en MRU y MRUV 🏎️
           </p>
         </div>
 
         <div className="stats-grid">
           <div className="stat-item">
-            <div className="stat-val">📷 Visión</div>
-            <div className="stat-lbl">Resuelve por Foto</div>
+            <div className="stat-val">MRU</div>
+            <div className="stat-lbl">Velocidad Constante</div>
           </div>
           <div className="stat-item">
-            <div className="stat-val">SI</div>
-            <div className="stat-lbl">Unidades Estándar</div>
+            <div className="stat-val">MRUV</div>
+            <div className="stat-lbl">Aceleración & Frenado</div>
           </div>
         </div>
 
         <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
           <h4 style={{ fontSize: '0.88rem', color: 'var(--accent-cyan)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Camera size={16} /> Resolver con Fotos
+            <Zap size={16} /> Especialidad 100% MRU / MRUV
           </h4>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
-            Haz clic en el ícono de cámara 📷 para subir una foto de tu cuaderno, libro o examen. Anto 🫶 extraerá los datos y resolverá el problema paso a paso.
-          </p>
+          <ul style={{ fontSize: '0.82rem', color: 'var(--text-muted)', paddingLeft: '1.2rem', lineHeight: '1.7' }}>
+            <li>Velocidad Constante ($v = d/t$)</li>
+            <li>Aceleración y Frenado ($a = \Delta v/t$)</li>
+            <li>Ecuación de Torricelli ($v_f^2 = v_0^2 + 2ad$)</li>
+            <li>Encuentro de 2 Móviles ($t_e = D / (v_1 + v_2)$)</li>
+            <li>Fotos de Ejercicios de Movimiento 📷</li>
+          </ul>
         </div>
       </div>
     </div>
