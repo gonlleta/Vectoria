@@ -3,11 +3,11 @@ import { MessageSquare, Calculator, Activity, BookOpen, Award, Settings, Sparkle
 
 export default function Navbar({ activeTab, setActiveTab, onOpenSettings, apiKey }) {
   const navItems = [
-    { id: 'chat', label: 'Chat & Solucionador', icon: MessageSquare },
-    { id: 'calculators', label: 'Calculadoras', icon: Calculator },
-    { id: 'visualizer', label: 'Simulador 2D', icon: Activity },
-    { id: 'formulas', label: 'Formulario', icon: BookOpen },
-    { id: 'quiz', label: 'Desafíos & Quiz', icon: Award },
+    { id: 'chat', label: 'Chat', fullLabel: 'Chat & Solucionador', icon: MessageSquare },
+    { id: 'calculators', label: 'Cálculo', fullLabel: 'Calculadoras', icon: Calculator },
+    { id: 'visualizer', label: 'Simulador', fullLabel: 'Simulador 2D', icon: Activity },
+    { id: 'formulas', label: 'Fórmulas', fullLabel: 'Formulario', icon: BookOpen },
+    { id: 'quiz', label: 'Quiz', fullLabel: 'Desafíos & Quiz', icon: Award },
   ];
 
   return (
