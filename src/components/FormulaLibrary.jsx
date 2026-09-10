@@ -13,23 +13,23 @@ const FORMULA_DATABASE = [
       { name: 'd', desc: 'Distancia recorrida (m)' },
       { name: 't', desc: 'Tiempo transcurrido (s)' }
     ],
-    antoNote: 'En el MRU la velocidad nunca cambia y la aceleración vale exactamente cero.'
+    antoNote: 'En el MRU la velocidad no cambia nunca y la aceleración es 0 m/s².'
   },
   {
     id: 2,
-    title: 'Posición y Distancia en MRU',
+    title: 'Distancia / Posición en MRU',
     category: 'MRU',
     formula: 'd = v \\cdot t',
     variables: [
-      { name: 'd', desc: 'Distancia recorrida (m)' },
-      { name: 'v', desc: 'Velocidad constante (m/s)' },
+      { name: 'd', desc: 'Distancia (m)' },
+      { name: 'v', desc: 'Velocidad (m/s)' },
       { name: 't', desc: 'Tiempo (s)' }
     ],
-    antoNote: 'Permite calcular qué tan lejos llega un móvil que marcha a velocidad uniforme.'
+    antoNote: 'Multiplica la velocidad constante por el tiempo empleado.'
   },
   {
     id: 3,
-    title: 'Definición de Aceleración (MRUV)',
+    title: 'Aceleración en MRUV',
     category: 'MRUV',
     formula: 'a = \\frac{v_f - v_0}{t}',
     variables: [
@@ -38,45 +38,46 @@ const FORMULA_DATABASE = [
       { name: 'v_0', desc: 'Velocidad inicial (m/s)' },
       { name: 't', desc: 'Tiempo (s)' }
     ],
-    antoNote: 'Si el objeto frena, la aceleración resultante da con signo negativo.'
+    antoNote: 'Mide la variación de la velocidad por cada segundo que pasa.'
   },
   {
     id: 4,
-    title: 'Posición con Aceleración (MRUV)',
+    title: 'Velocidad Final en MRUV',
     category: 'MRUV',
-    formula: 'd = v_0 t + \\frac{1}{2} a t^2',
-    variables: [
-      { name: 'd', desc: 'Distancia (m)' },
-      { name: 'v_0', desc: 'Velocidad inicial (m/s)' },
-      { name: 'a', desc: 'Aceleración (m/s²)' },
-      { name: 't', desc: 'Tiempo (s)' }
-    ],
-    antoNote: 'Si el móvil parte del reposo, el término v₀·t vale 0.'
-  },
-  {
-    id: 5,
-    title: 'Ecuación de Torricelli (Sin tiempo)',
-    category: 'MRUV',
-    formula: 'v_f^2 = v_0^2 + 2 a d',
+    formula: 'v_f = v_0 + a \\cdot t',
     variables: [
       { name: 'v_f', desc: 'Velocidad final (m/s)' },
       { name: 'v_0', desc: 'Velocidad inicial (m/s)' },
       { name: 'a', desc: 'Aceleración (m/s²)' },
-      { name: 'd', desc: 'Distancia (m)' }
+      { name: 't', desc: 'Tiempo (s)' }
     ],
-    antoNote: 'Ideal para resolver ejercicios donde no te dan el dato del tiempo.'
+    antoNote: 'Si parte del reposo, v₀ es 0. Si frena hasta detenerse, v_f es 0.'
+  },
+  {
+    id: 5,
+    title: 'Distancia con Aceleración (MRUV)',
+    category: 'MRUV',
+    formula: 'd = v_0 t + \\frac{1}{2} a t^2',
+    variables: [
+      { name: 'd', desc: 'Distancia recorrida (m)' },
+      { name: 'v_0', desc: 'Velocidad inicial (m/s)' },
+      { name: 'a', desc: 'Aceleración (m/s²)' },
+      { name: 't', desc: 'Tiempo (s)' }
+    ],
+    antoNote: 'Calcula el espacio recorrido cuando el objeto acelera o frena.'
   },
   {
     id: 6,
-    title: 'Tiempo de Encuentro en MRU',
-    category: 'Encuentro',
-    formula: 't_e = \\frac{D}{v_1 + v_2}',
+    title: 'Distancia por Velocidad Media (MRUV)',
+    category: 'MRUV',
+    formula: 'd = \\left(\\frac{v_0 + v_f}{2}\\right) \\cdot t',
     variables: [
-      { name: 't_e', desc: 'Tiempo de encuentro (s)' },
-      { name: 'D', desc: 'Distancia inicial entre autos (m)' },
-      { name: 'v_1, v_2', desc: 'Velocidades de los dos móviles (m/s)' }
+      { name: 'd', desc: 'Distancia (m)' },
+      { name: 'v_0', desc: 'Velocidad inicial (m/s)' },
+      { name: 'v_f', desc: 'Velocidad final (m/s)' },
+      { name: 't', desc: 'Tiempo (s)' }
     ],
-    antoNote: 'Fórmula para dos móviles que viajan uno hacia el otro desde puntos opuestos.'
+    antoNote: 'Útil cuando conoces la velocidad inicial, final y el tiempo, sin requerir la aceleración.'
   }
 ];
 
@@ -84,7 +85,7 @@ export default function FormulaLibrary({ onSendToAnto }) {
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('Todas');
 
-  const categories = ['Todas', 'MRU', 'MRUV', 'Encuentro'];
+  const categories = ['Todas', 'MRU', 'MRUV'];
 
   const filteredFormulas = FORMULA_DATABASE.filter((item) => {
     const matchesSearch = item.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -100,7 +101,7 @@ export default function FormulaLibrary({ onSendToAnto }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <h2 style={{ fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <BookOpen size={24} color="var(--accent-purple)" />
-            Formulario Especializado en MRU y MRUV
+            Fórmulas Esenciales de MRU y MRUV
           </h2>
 
           <div className="input-box-wrapper" style={{ width: '280px' }}>
@@ -163,7 +164,7 @@ export default function FormulaLibrary({ onSendToAnto }) {
             <button
               className="btn-secondary"
               style={{ marginTop: 'auto', width: '100%', fontSize: '0.82rem' }}
-              onClick={() => onSendToAnto && onSendToAnto(`Explicame detalladamente la fórmula de ${item.title}: ${item.formula}`)}
+              onClick={() => onSendToAnto && onSendToAnto(`Explicame la fórmula de ${item.title}: ${item.formula}`)}
             >
               <Send size={14} /> Resolver con Anto 🫶
             </button>
