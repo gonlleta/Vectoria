@@ -137,11 +137,11 @@ export default function AntoChat({ apiKey }) {
     setMessages((prev) => [...prev, userMsg]);
 
     try {
-      // 2. Escanear texto con OCR local (con timeout de 3.5 segundos para jamás trabar la interfaz)
+      // 2. Escanear texto con OCR local (preprocesado en canvas, tiempo de espera seguro)
       let scannedText = '';
       try {
         const ocrPromise = scanImageText(imgDataUrl);
-        const timeoutPromise = new Promise((res) => setTimeout(() => res(''), 3500));
+        const timeoutPromise = new Promise((res) => setTimeout(() => res(''), 15000));
         scannedText = await Promise.race([ocrPromise, timeoutPromise]);
       } catch (e) {
         console.warn('OCR error/timeout:', e);
