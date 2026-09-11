@@ -102,14 +102,8 @@ export default function AntoChat({ apiKey }) {
       const reader = new FileReader();
       reader.onload = async (event) => {
         const imgDataUrl = event.target.result;
-        setSelectedImage(imgDataUrl);
-        setIsOcrScanning(true);
-        setOcrText('');
-
-        // Escanear texto directamente con OCR
-        const scanned = await scanImageText(imgDataUrl);
-        setOcrText(scanned);
-        setIsOcrScanning(false);
+        // Procesar y enviar la foto al chat inmediatamente sin necesidad de clics extra
+        await processAndSendPhoto(imgDataUrl, input);
       };
       reader.readAsDataURL(file);
     }
@@ -120,6 +114,98 @@ export default function AntoChat({ apiKey }) {
     setOcrText('');
     setIsOcrScanning(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Función principal para enviar y procesar fotos instantáneamente
+  const processAndSendPhoto = async (imgDataUrl, textQuery = '') => {
+    if (!imgDataUrl || loading) return;
+
+    // Limpiar input y selecciones
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setSelectedImage(null);
+    setInput('');
+    setLoading(true);
+
+    // 1. Mostrar mensaje del usuario con la foto en el chat de inmediato
+    const userMsg = {
+      sender: 'user',
+      text: textQuery.trim() || '📷 Foto de ejercicio enviada para análisis',
+      image: imgDataUrl,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+
+    try {
+      // 2. Escanear texto con OCR local (con timeout de 3.5 segundos para jamás trabar la interfaz)
+      let scannedText = '';
+      try {
+        const ocrPromise = scanImageText(imgDataUrl);
+        const timeoutPromise = new Promise((res) => setTimeout(() => res(''), 3500));
+        scannedText = await Promise.race([ocrPromise, timeoutPromise]);
+      } catch (e) {
+        console.warn('OCR error/timeout:', e);
+      }
+
+      // 3. Detectar si hay múltiples ejercicios en la foto
+      const multiExercises = detectMultipleExercises(scannedText || textQuery);
+
+      const newPhotoCtx = {
+        image: imgDataUrl,
+        ocrText: scannedText,
+        multiExercises: multiExercises.length ? multiExercises : [{ id: '1', title: 'Ejercicio 1', text: scannedText }],
+        activeIndex: 0
+      };
+      setPhotoContext(newPhotoCtx);
+
+      // 4. Obtener solución (con API de Gemini o Motor Físico Local)
+      if (apiKey) {
+        const geminiPrompt = [textQuery, scannedText ? `(Texto transcrito de la foto: "${scannedText}")` : '']
+          .filter(Boolean)
+          .join('\n');
+
+        const geminiResponse = await askGeminiAnto(geminiPrompt, apiKey, imgDataUrl);
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'anto',
+            text: geminiResponse,
+            isGemini: true,
+            photoCtx: newPhotoCtx,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const combinedText = [textQuery, scannedText].filter(Boolean).join(' ');
+        const solution = analyzeImageProblem(imgDataUrl, combinedText, scannedText, 0);
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'anto',
+            solution: solution,
+            userQuery: combinedText || 'Análisis de foto de física',
+            photoCtx: newPhotoCtx,
+            text: solution.isConceptual
+              ? solution.explicacion
+              : `¡He analizado tu foto y resuelto tu ejercicio en la hoja de cuaderno virtual! 📝`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+      }
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: 'anto',
+          text: `⚠️ No pude procesar tu foto: ${error.message}. ¡Prueba con otra foto más clara o escríbeme el ejercicio en el chat! 🫶`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Resolver ejercicio específico o siguiente de la foto
@@ -202,6 +288,11 @@ export default function AntoChat({ apiKey }) {
     const query = textToSend || input;
     const lowerQuery = (query || '').toLowerCase().trim();
 
+    if (selectedImage) {
+      await processAndSendPhoto(selectedImage, query);
+      return;
+    }
+
     // 1. Detectar si el usuario pide pasar al siguiente ejercicio de una foto activa
     const isNextExerciseRequest = photoContext && (
       lowerQuery.includes('siguiente') ||
@@ -215,7 +306,7 @@ export default function AntoChat({ apiKey }) {
       /resuelve\s*(el|el ejercicio)?\s*(\d+|[a-d])/i.test(lowerQuery)
     );
 
-    if (isNextExerciseRequest && !selectedImage) {
+    if (isNextExerciseRequest) {
       let targetIdx = photoContext.activeIndex + 1;
 
       // Si el usuario especificó un número o letra explícita
@@ -240,7 +331,7 @@ export default function AntoChat({ apiKey }) {
       return;
     }
 
-    if ((!query.trim() && !selectedImage && !ocrText.trim()) || loading) return;
+    if (!query.trim() || loading) return;
 
     if (query === "📷 Adjuntar foto de mi ejercicio") {
       fileInputRef.current?.click();
@@ -252,87 +343,41 @@ export default function AntoChat({ apiKey }) {
       return;
     }
 
-    const currentImage = selectedImage;
-    const currentOcrText = ocrText;
-
-    setSelectedImage(null);
-    setOcrText('');
-    setIsOcrScanning(false);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-
-    // Detectar ejercicios múltiples si hay una foto
-    let multiExercises = [];
-    if (currentImage || currentOcrText) {
-      const combinedForScan = [query, currentOcrText].filter(Boolean).join(' ');
-      multiExercises = detectMultipleExercises(combinedForScan);
-    }
-
-    const newPhotoCtx = currentImage ? {
-      image: currentImage,
-      ocrText: currentOcrText,
-      multiExercises: multiExercises.length ? multiExercises : [{ id: '1', title: 'Ejercicio 1', text: currentOcrText }],
-      activeIndex: 0
-    } : null;
-
-    if (newPhotoCtx) {
-      setPhotoContext(newPhotoCtx);
-    }
-
-    const fullPromptForUserMsg = [query, currentOcrText ? `(Texto foto: "${currentOcrText}")` : '']
-      .filter(Boolean)
-      .join(' | ');
-
     const userMsg = {
       sender: 'user',
-      text: fullPromptForUserMsg || 'Análisis de foto de física',
-      image: currentImage,
-      ocrText: currentOcrText,
+      text: query,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    if (!textToSend) setInput('');
+    setInput('');
     setLoading(true);
 
     try {
       if (apiKey) {
-        const combinedPrompt = [query, currentOcrText ? `(Texto transcrito de la foto: "${currentOcrText}")` : '']
-          .filter(Boolean)
-          .join('\n');
-
-        const geminiResponse = await askGeminiAnto(combinedPrompt, apiKey, currentImage);
+        const geminiResponse = await askGeminiAnto(query, apiKey);
         setMessages((prev) => [
           ...prev,
           {
             sender: 'anto',
             text: geminiResponse,
             isGemini: true,
-            photoCtx: newPhotoCtx,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }
         ]);
       } else {
-        await new Promise((resolve) => setTimeout(resolve, 650));
-
-        let solution;
-        const combinedQueryText = [query, currentOcrText].filter(Boolean).join(' ');
-
-        if (currentImage) {
-          solution = analyzeImageProblem(currentImage, combinedQueryText, currentOcrText, 0);
-        } else {
-          solution = solvePhysicsProblem(combinedQueryText);
-        }
+        await new Promise((resolve) => setTimeout(resolve, 550));
+        const solution = solvePhysicsProblem(query);
 
         setMessages((prev) => [
           ...prev,
           {
             sender: 'anto',
             solution: solution,
-            userQuery: combinedQueryText,
-            photoCtx: newPhotoCtx,
+            userQuery: query,
             text: solution.isConceptual
               ? solution.explicacion
-              : `¡He resuelto tu ejercicio en la hoja de cuaderno virtual! 📝 Arriba tienes el desglose matemático detallado con los datos exactos y a continuación te lo explico por escrito:`,
+              : `¡He resuelto tu ejercicio en la hoja de cuaderno virtual! 📝 Arriba tienes el desglose matemático detallado y a continuación te lo explico por escrito:`,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }
         ]);
