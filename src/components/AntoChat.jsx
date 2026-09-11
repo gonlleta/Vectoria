@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Volume2, VolumeX, Sparkles, Copy, Check, Lightbulb, ArrowRight, RefreshCw, Zap, Camera, X, Mic, MicOff, Edit3, Eye, FileText, CheckCircle2 } from 'lucide-react';
-import { solvePhysicsProblem, analyzeImageProblem } from '../services/antoPhysicsEngine';
+import { solvePhysicsProblem, analyzeImageProblem, detectMultipleExercises } from '../services/antoPhysicsEngine';
 import { askGeminiAnto } from '../services/geminiApi';
 import { scanImageText } from '../services/ocrService';
 import { renderLatex, renderBlockLatex } from '../utils/katexRender';
