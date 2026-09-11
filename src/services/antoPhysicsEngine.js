@@ -474,12 +474,12 @@ export function analyzeImageProblem(imageDataUrl, userText = '', ocrText = '', s
 
   return {
     isConceptual: true,
-    title: 'Foto Adjuntada 📷 (Atención con los datos)',
-    category: 'Escaneo de Foto MRU / MRUV',
+    title: 'Foto con datos ilegibles o borrosos ⚠️',
+    category: 'Escaneo de Foto',
     multiExercises: multiExercises,
-    explicacion: '¡Hola! 🫶 He recibido tu foto. Para asegurarte una solución 100% exacta con los datos reales de tu ejercicio:\n\n1. Si agregas tu API Key de Gemini (en ⚙️ Configuración), analizaré la foto con visión directa de IA.\n2. También puedes verificar o editar el texto/números detectados en la casilla antes de enviar.',
+    explicacion: '⚠️ No pude leer con suficiente claridad los datos numéricos de tu foto (la imagen puede estar borrosa, muy oscura o con sombras).\n\nPor favor:\n1. Intenta tomar la foto nuevamente con mejor iluminación y enfoque.\n2. O escríbeme el enunciado o números de tu ejercicio en el chat para que te lo resuelva al instante 🫶',
     formula: 'v = \\frac{d}{t} \\quad | \\quad a = \\frac{v_f - v_0}{t}',
-    tip: 'Asegúrate de que la foto tenga buena luz y que las unidades (m, km/h, s, m/s²) se lean claramente.'
+    tip: 'Revisa que la imagen esté bien enfocada sobre el texto y las unidades (m, km/h, s, m/s²).'
   };
 }
 
