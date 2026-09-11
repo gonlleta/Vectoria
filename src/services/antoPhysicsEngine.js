@@ -383,15 +383,92 @@ function solveEncuentroMRU(ext, text) {
   };
 }
 
-export function analyzeImageProblem(imageDataUrl, userText = '', ocrText = '') {
+export function detectMultipleExercises(text) {
+  if (!text || typeof text !== 'string') return [];
+
+  // Limpiar texto
+  const clean = text.trim();
+  if (!clean) return [];
+
+  // Buscar marcadores explícitos: "1)", "2.", "Ejercicio 1", "Problema 2", "a)", "b)", "1-", "2-"
+  const lines = clean.split(/(?:\r?\n)+/);
+  const exercises = [];
+  let currentEx = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    // Coincidencia con encabezados numéricos o de letras (ej. "Ejercicio 1", "1)", "2.", "a)")
+    const match = trimmed.match(/^(?:ejercicio|problema|item|puntos?|n°)?\s*(\d+|[a-d])[\.\)\-:]\s*(.*)/i);
+
+    if (match) {
+      if (currentEx) {
+        exercises.push(currentEx);
+      }
+      currentEx = {
+        id: match[1].toLowerCase(),
+        title: `Ejercicio ${match[1].toUpperCase()}`,
+        text: match[2] || trimmed
+      };
+    } else {
+      if (currentEx) {
+        currentEx.text += ' ' + trimmed;
+      } else {
+        currentEx = {
+          id: '1',
+          title: 'Ejercicio 1',
+          text: trimmed
+        };
+      }
+    }
+  }
+
+  if (currentEx) {
+    exercises.push(currentEx);
+  }
+
+  // Si no se dividió por líneas pero el texto contiene varios marcadores
+  if (exercises.length <= 1) {
+    const inlineMatches = Array.from(clean.matchAll(/(?:ejercicio|problema|\d+[\.\)\-])\s*(\d+|[a-d])?[\.\)\-:]?\s*([^]*?)(?=(?:ejercicio|problema|\d+[\.\)\-])|$)/gi));
+    if (inlineMatches.length > 1) {
+      return inlineMatches.map((m, idx) => ({
+        id: m[1] || `${idx + 1}`,
+        title: `Ejercicio ${m[1] || (idx + 1)}`,
+        text: m[0].trim()
+      }));
+    }
+  }
+
+  return exercises;
+}
+
+export function analyzeImageProblem(imageDataUrl, userText = '', ocrText = '', selectedExerciseIndex = 0) {
   const combinedText = [userText, ocrText].filter(Boolean).join(' ');
+  const multiExercises = detectMultipleExercises(ocrText || combinedText);
+
+  let targetText = combinedText;
+  let activeTitle = 'Ejercicio de Física';
+
+  if (multiExercises.length > 1) {
+    const safeIdx = Math.min(selectedExerciseIndex, multiExercises.length - 1);
+    const targetEx = multiExercises[safeIdx];
+    if (targetEx) {
+      targetText = `${userText} ${targetEx.text}`;
+      activeTitle = `${targetEx.title} (de ${multiExercises.length} detectados en la foto)`;
+    }
+  }
   
-  if (combinedText.trim()) {
-    const solved = solvePhysicsProblem(combinedText);
+  if (targetText.trim()) {
+    const solved = solvePhysicsProblem(targetText);
     return {
       ...solved,
-      title: `📸 Foto Procesada: ${solved.title || 'Ejercicio de Física'}`,
-      explicacion: `¡Anto analizó tu foto! 🔍\nTexto detectado: "${ocrText.trim() ? ocrText.trim().substring(0, 100) + '...' : userText}"\n\n${solved.explicacion}`
+      title: `📸 Foto: ${solved.title || activeTitle}`,
+      multiExercises: multiExercises,
+      activeExerciseIndex: selectedExerciseIndex,
+      explicacion: multiExercises.length > 1
+        ? `¡Anto analizó tu foto! 🔍\n📌 Resolviendo ${multiExercises[selectedExerciseIndex]?.title || 'Ejercicio'} (total: ${multiExercises.length} detectados en la foto).\n\n${solved.explicacion}`
+        : `¡Anto analizó tu foto! 🔍\n\n${solved.explicacion}`
     };
   }
 
@@ -399,9 +476,11 @@ export function analyzeImageProblem(imageDataUrl, userText = '', ocrText = '') {
     isConceptual: true,
     title: 'Foto Adjuntada 📷 (Atención con los datos)',
     category: 'Escaneo de Foto MRU / MRUV',
+    multiExercises: multiExercises,
     explicacion: '¡Hola! 🫶 He recibido tu foto. Para asegurarte una solución 100% exacta con los datos reales de tu ejercicio:\n\n1. Si agregas tu API Key de Gemini (en ⚙️ Configuración), analizaré la foto con visión directa de IA.\n2. También puedes verificar o editar el texto/números detectados en la casilla antes de enviar.',
     formula: 'v = \\frac{d}{t} \\quad | \\quad a = \\frac{v_f - v_0}{t}',
     tip: 'Asegúrate de que la foto tenga buena luz y que las unidades (m, km/h, s, m/s²) se lean claramente.'
   };
 }
+
 

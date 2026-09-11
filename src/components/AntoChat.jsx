@@ -27,6 +27,7 @@ export default function AntoChat({ apiKey }) {
   const [ocrText, setOcrText] = useState('');
   const [isOcrScanning, setIsOcrScanning] = useState(false);
   const [photoData, setPhotoData] = useState({ v0: '', vf: '', d: '', t: '', a: '' });
+  const [photoContext, setPhotoContext] = useState(null); // Contexto activo de foto para cambio de ejercicios
   const [isRecording, setIsRecording] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
@@ -124,8 +125,124 @@ export default function AntoChat({ apiKey }) {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // Resolver ejercicio específico o siguiente de la foto
+  const handleSolveExerciseIndex = async (targetIndex, customContext = null) => {
+    const activeCtx = customContext || photoContext;
+    if (!activeCtx || !activeCtx.multiExercises || activeCtx.multiExercises.length === 0) return;
+
+    if (targetIndex >= activeCtx.multiExercises.length) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: 'anto',
+          text: '🏆 ¡Ya hemos resuelto todos los ejercicios que detecté en tu foto! Si tienes otra hoja o guía, ¡sube la foto y la resolvemos de inmediato! 🫶',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+      return;
+    }
+
+    const ex = activeCtx.multiExercises[targetIndex];
+    const updatedCtx = { ...activeCtx, activeIndex: targetIndex };
+    setPhotoContext(updatedCtx);
+
+    const userPrompt = `Pasar a resolver el ${ex.title}: "${ex.text}"`;
+
+    const userMsg = {
+      sender: 'user',
+      text: userPrompt,
+      image: activeCtx.image,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    setLoading(true);
+
+    try {
+      if (apiKey) {
+        const geminiPrompt = `[SOLICITUD DE RESOLUCIÓN DE EJERCICIO SIGUIENTE DE FOTO ADJUNTA]\nPor favor resuelve el ${ex.title} (Ejercicio ${targetIndex + 1} de ${activeCtx.multiExercises.length}): "${ex.text}"\nMuestra los datos exactos, la fórmula y la solución paso a paso.`;
+        const geminiResponse = await askGeminiAnto(geminiPrompt, apiKey, activeCtx.image);
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'anto',
+            text: geminiResponse,
+            isGemini: true,
+            photoCtx: updatedCtx,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        const solution = analyzeImageProblem(activeCtx.image, ex.text, activeCtx.ocrText, targetIndex);
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'anto',
+            solution: solution,
+            userQuery: userPrompt,
+            photoCtx: updatedCtx,
+            text: `¡Aquí tienes la resolución del ${ex.title} de tu foto! 📝 (Ejercicio ${targetIndex + 1} de ${activeCtx.multiExercises.length}):`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+      }
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: 'anto',
+          text: `Ups, no pude resolver el ${ex.title}: ${err.message}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSend = async (textToSend) => {
     const query = textToSend || input;
+    const lowerQuery = (query || '').toLowerCase().trim();
+
+    // 1. Detectar si el usuario pide pasar al siguiente ejercicio de una foto activa
+    const isNextExerciseRequest = photoContext && (
+      lowerQuery.includes('siguiente') ||
+      lowerQuery.includes('proximo') ||
+      lowerQuery.includes('próximo') ||
+      lowerQuery.includes('el que sigue') ||
+      lowerQuery.includes('paso al') ||
+      lowerQuery.includes('pasa al') ||
+      /^(siguiente|proximo|próximo|next)$/i.test(lowerQuery) ||
+      /ejercicio\s*(\d+|[a-d])/i.test(lowerQuery) ||
+      /resuelve\s*(el|el ejercicio)?\s*(\d+|[a-d])/i.test(lowerQuery)
+    );
+
+    if (isNextExerciseRequest && !selectedImage) {
+      let targetIdx = photoContext.activeIndex + 1;
+
+      // Si el usuario especificó un número o letra explícita
+      const matchNum = lowerQuery.match(/(?:ejercicio|el)\s*(\d+)/i);
+      if (matchNum) {
+        const numVal = parseInt(matchNum[1], 10);
+        if (numVal >= 1 && numVal <= photoContext.multiExercises.length) {
+          targetIdx = numVal - 1;
+        }
+      } else {
+        const matchLetter = lowerQuery.match(/(?:ejercicio|el)\s*([a-d])/i);
+        if (matchLetter) {
+          const letterMap = { a: 0, b: 1, c: 2, d: 3 };
+          if (letterMap[matchLetter[1].toLowerCase()] !== undefined) {
+            targetIdx = letterMap[matchLetter[1].toLowerCase()];
+          }
+        }
+      }
+
+      setInput('');
+      await handleSolveExerciseIndex(targetIdx);
+      return;
+    }
+
     if ((!query.trim() && !selectedImage && !ocrText.trim() && !Object.values(photoData).some(Boolean)) || loading) return;
 
     if (query === "📷 Adjuntar foto de mi ejercicio") {
@@ -158,6 +275,24 @@ export default function AntoChat({ apiKey }) {
     
     const confirmedDataStr = confirmArr.length ? `[DATOS CONFIRMADOS DE LA FOTO]: ${confirmArr.join(', ')}` : '';
 
+    // Detectar ejercicios múltiples si hay una foto
+    let multiExercises = [];
+    if (currentImage || currentOcrText) {
+      const combinedForScan = [query, currentOcrText].filter(Boolean).join(' ');
+      multiExercises = detectMultipleExercises(combinedForScan);
+    }
+
+    const newPhotoCtx = currentImage ? {
+      image: currentImage,
+      ocrText: currentOcrText,
+      multiExercises: multiExercises.length ? multiExercises : [{ id: '1', title: 'Ejercicio 1', text: currentOcrText }],
+      activeIndex: 0
+    } : null;
+
+    if (newPhotoCtx) {
+      setPhotoContext(newPhotoCtx);
+    }
+
     const fullPromptForUserMsg = [query, confirmedDataStr, currentOcrText ? `(Texto foto: "${currentOcrText}")` : '']
       .filter(Boolean)
       .join(' | ');
@@ -187,6 +322,7 @@ export default function AntoChat({ apiKey }) {
             sender: 'anto',
             text: geminiResponse,
             isGemini: true,
+            photoCtx: newPhotoCtx,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }
         ]);
@@ -197,7 +333,7 @@ export default function AntoChat({ apiKey }) {
         const combinedQueryText = [query, confirmedDataStr, currentOcrText].filter(Boolean).join(' ');
 
         if (currentImage) {
-          solution = analyzeImageProblem(currentImage, combinedQueryText, currentOcrText);
+          solution = analyzeImageProblem(currentImage, combinedQueryText, currentOcrText, 0);
         } else {
           solution = solvePhysicsProblem(combinedQueryText);
         }
@@ -208,6 +344,7 @@ export default function AntoChat({ apiKey }) {
             sender: 'anto',
             solution: solution,
             userQuery: combinedQueryText,
+            photoCtx: newPhotoCtx,
             text: solution.isConceptual
               ? solution.explicacion
               : `¡He resuelto tu ejercicio en la hoja de cuaderno virtual! 📝 Arriba tienes el desglose matemático detallado con los datos exactos y a continuación te lo explico por escrito:`,
@@ -285,6 +422,63 @@ export default function AntoChat({ apiKey }) {
                         <div><strong>Tip de Anto 🫶: </strong>{msg.solution.tip}</div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* 3. BARRA NAVEGACIÓN MULTI-EJERCICIOS EN LA FOTO */}
+                {msg.photoCtx && msg.photoCtx.multiExercises && msg.photoCtx.multiExercises.length > 1 && (
+                  <div style={{ marginTop: '0.85rem', paddingTop: '0.6rem', borderTop: '1px dashed rgba(255, 255, 255, 0.15)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontWeight: '600', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Sparkles size={14} />
+                      <span>Ejercicios detectados en esta foto ({msg.photoCtx.multiExercises.length}):</span>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      {msg.photoCtx.multiExercises.map((exItem, exIdx) => {
+                        const isCurrent = msg.photoCtx.activeIndex === exIdx;
+                        return (
+                          <button
+                            key={exIdx}
+                            onClick={() => handleSolveExerciseIndex(exIdx, msg.photoCtx)}
+                            style={{
+                              background: isCurrent ? 'var(--accent-purple)' : 'rgba(255, 255, 255, 0.08)',
+                              color: '#fff',
+                              border: isCurrent ? '1px solid #c084fc' : '1px solid rgba(255, 255, 255, 0.15)',
+                              borderRadius: '20px',
+                              padding: '0.25rem 0.65rem',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              fontWeight: isCurrent ? '600' : 'normal',
+                              boxShadow: isCurrent ? '0 0 10px rgba(168, 85, 247, 0.4)' : 'none'
+                            }}
+                          >
+                            <span>{isCurrent ? '📌' : '➡️'} {exItem.title}</span>
+                          </button>
+                        );
+                      })}
+                      {msg.photoCtx.activeIndex < msg.photoCtx.multiExercises.length - 1 && (
+                        <button
+                          onClick={() => handleSolveExerciseIndex(msg.photoCtx.activeIndex + 1, msg.photoCtx)}
+                          style={{
+                            background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '20px',
+                            padding: '0.25rem 0.75rem',
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            fontWeight: '600'
+                          }}
+                        >
+                          <span>▶️ Resolver Siguiente</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
 
