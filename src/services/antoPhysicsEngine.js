@@ -353,25 +353,25 @@ function solveEncuentroMRU(ext, text) {
   };
 }
 
-export function analyzeImageProblem(imageDataUrl, userText = '') {
+export function analyzeImageProblem(imageDataUrl, userText = '', ocrText = '') {
+  const combinedText = [userText, ocrText].filter(Boolean).join(' ');
+  
+  if (combinedText.trim()) {
+    const solved = solvePhysicsProblem(combinedText);
+    return {
+      ...solved,
+      title: `📸 Foto Procesada: ${solved.title || 'Ejercicio de Física'}`,
+      explicacion: `¡Anto analizó tu foto! 🔍\nTexto detectado: "${ocrText.trim() ? ocrText.trim().substring(0, 100) + '...' : userText}"\n\n${solved.explicacion}`
+    };
+  }
+
   return {
-    isConceptual: false,
-    title: 'Ejercicio de MRU / MRUV Detectado en la Foto 📷',
+    isConceptual: true,
+    title: 'Foto Adjuntada 📷 (Atención con los datos)',
     category: 'Escaneo de Foto MRU / MRUV',
-    incognita: 'Aceleración (a) y Distancia (d)',
-    formula: 'a = \\frac{v_f - v_0}{t} \\quad | \\quad d = v_0 t + \\frac{1}{2}a t^2',
-    datos: [
-      { label: 'Velocidad inicial (v₀)', val: '0 m/s' },
-      { label: 'Velocidad final (v_f)', val: '25 m/s' },
-      { label: 'Tiempo (t)', val: '5 s' }
-    ],
-    pasos: [
-      'Anto 🫶 escaneó la foto y reconoció el problema de movimiento acelerado (MRUV).',
-      'Calculamos la aceleración: a = (25 m/s - 0 m/s) / 5 s = 5.00 m/s²',
-      'Calculamos la distancia recorrida: d = 0.5 * 5 m/s² * (5 s)² = 62.50 m'
-    ],
-    resultado: 'a = 5.00 \\text{ m/s}^2 \\quad | \\quad d = 62.50 \\text{ m}',
-    explicacion: '¡Foto analizada con éxito! 📸 Anto identificó los datos de MRUV y realizó la resolución paso a paso.',
-    tip: 'Si deseas preguntas conversacionales abiertas de MRU/MRUV por foto, puedes conectar una API Key de Gemini desde ⚙️.'
+    explicacion: '¡Hola! 🫶 He recibido tu foto. Para asegurarte una solución 100% exacta con los datos reales de tu ejercicio:\n\n1. Si agregas tu API Key de Gemini (en ⚙️ Configuración), analizaré la foto con visión directa de IA.\n2. También puedes verificar o editar el texto/números detectados en la casilla antes de enviar.',
+    formula: 'v = \\frac{d}{t} \\quad | \\quad a = \\frac{v_f - v_0}{t}',
+    tip: 'Asegúrate de que la foto tenga buena luz y que las unidades (m, km/h, s, m/s²) se lean claramente.'
   };
 }
+

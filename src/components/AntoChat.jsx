@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Volume2, VolumeX, Sparkles, Copy, Check, Lightbulb, ArrowRight, RefreshCw, Zap, Camera, X, Mic, MicOff } from 'lucide-react';
+import { Send, Volume2, VolumeX, Sparkles, Copy, Check, Lightbulb, ArrowRight, RefreshCw, Zap, Camera, X, Mic, MicOff, Edit3, Eye, FileText, CheckCircle2 } from 'lucide-react';
 import { solvePhysicsProblem, analyzeImageProblem } from '../services/antoPhysicsEngine';
 import { askGeminiAnto } from '../services/geminiApi';
+import { scanImageText } from '../services/ocrService';
 import { renderLatex, renderBlockLatex } from '../utils/katexRender';
 import WhiteboardSheet from './WhiteboardSheet';
 
@@ -17,12 +18,14 @@ export default function AntoChat({ apiKey }) {
   const [messages, setMessages] = useState([
     {
       sender: 'anto',
-      text: '¡Hola! Soy Anto 🫶, tu tutora de física especialista en MRU y MRUV. ¡Puedes hablarme con el micrófono 🎙️, escribirme o subir una foto 📷! Resolveré tu ejercicio paso a paso en una hoja en blanco y te lo explicaré por escrito.',
+      text: '¡Hola! Soy Anto 🫶, tu tutora de física especialista en MRU y MRUV. ¡Puedes hablarme por micrófono 🎙️, escribirme o subir una foto 📷 de tu libro u hoja! Escanearé el texto exacto de tu foto para que no haya ningún error con tus datos.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
   const [input, setInput] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
+  const [ocrText, setOcrText] = useState('');
+  const [isOcrScanning, setIsOcrScanning] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
@@ -96,8 +99,16 @@ export default function AntoChat({ apiKey }) {
         return;
       }
       const reader = new FileReader();
-      reader.onload = (event) => {
-        setSelectedImage(event.target.result);
+      reader.onload = async (event) => {
+        const imgDataUrl = event.target.result;
+        setSelectedImage(imgDataUrl);
+        setIsOcrScanning(true);
+        setOcrText('');
+        
+        // Escanear texto con OCR
+        const scanned = await scanImageText(imgDataUrl);
+        setOcrText(scanned);
+        setIsOcrScanning(false);
       };
       reader.readAsDataURL(file);
     }
@@ -105,12 +116,14 @@ export default function AntoChat({ apiKey }) {
 
   const removeSelectedImage = () => {
     setSelectedImage(null);
+    setOcrText('');
+    setIsOcrScanning(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSend = async (textToSend) => {
     const query = textToSend || input;
-    if ((!query.trim() && !selectedImage) || loading) return;
+    if ((!query.trim() && !selectedImage && !ocrText.trim()) || loading) return;
 
     if (query === "📷 Adjuntar foto de mi ejercicio") {
       fileInputRef.current?.click();
@@ -123,13 +136,19 @@ export default function AntoChat({ apiKey }) {
     }
 
     const currentImage = selectedImage;
+    const currentOcrText = ocrText;
     setSelectedImage(null);
+    setOcrText('');
+    setIsOcrScanning(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+
+    const fullPromptForUserMsg = query || (currentOcrText ? `[Foto adjunta]: ${currentOcrText}` : 'Análisis de foto');
 
     const userMsg = {
       sender: 'user',
-      text: query,
+      text: fullPromptForUserMsg,
       image: currentImage,
+      ocrText: currentOcrText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
@@ -139,7 +158,12 @@ export default function AntoChat({ apiKey }) {
 
     try {
       if (apiKey) {
-        const geminiResponse = await askGeminiAnto(query, apiKey, currentImage);
+        // Combinar query del usuario + texto extraído de la foto para máxima fidelidad
+        const combinedPrompt = [query, currentOcrText ? `(Texto transcrito de la foto: "${currentOcrText}")` : '']
+          .filter(Boolean)
+          .join('\n');
+
+        const geminiResponse = await askGeminiAnto(combinedPrompt, apiKey, currentImage);
         setMessages((prev) => [
           ...prev,
           {
@@ -154,7 +178,7 @@ export default function AntoChat({ apiKey }) {
 
         let solution;
         if (currentImage) {
-          solution = analyzeImageProblem(currentImage, query);
+          solution = analyzeImageProblem(currentImage, query, currentOcrText);
         } else {
           solution = solvePhysicsProblem(query);
         }
@@ -164,10 +188,10 @@ export default function AntoChat({ apiKey }) {
           {
             sender: 'anto',
             solution: solution,
-            userQuery: query,
+            userQuery: query || currentOcrText,
             text: solution.isConceptual
               ? solution.explicacion
-              : `¡He resuelto tu ejercicio en la hoja de cuaderno virtual! 📝 Arriba tienes el desglose matemático detallado y a continuación te lo explico por escrito:`,
+              : `¡He resuelto tu ejercicio en la hoja de cuaderno virtual! 📝 Arriba tienes el desglose matemático detallado con los datos exactos y a continuación te lo explico por escrito:`,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }
         ]);
@@ -287,16 +311,60 @@ export default function AntoChat({ apiKey }) {
             </div>
           )}
 
-          {/* Miniatura de Imagen Seleccionada */}
+          {/* Miniatura de Imagen Seleccionada + OCR Editor */}
           {selectedImage && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(168, 85, 247, 0.15)', padding: '0.5rem 0.85rem', borderRadius: '12px', border: '1px solid var(--accent-purple)' }}>
-              <img src={selectedImage} alt="Vista previa" style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover' }} />
-              <div style={{ flex: 1, fontSize: '0.82rem', color: '#fff' }}>
-                <strong>Foto adjuntada lista para escanear</strong>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: 'rgba(168, 85, 247, 0.12)', padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--accent-purple)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <img src={selectedImage} alt="Vista previa" style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover' }} />
+                <div style={{ flex: 1, fontSize: '0.82rem', color: '#fff' }}>
+                  <div style={{ fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    {isOcrScanning ? (
+                      <>
+                        <RefreshCw size={14} className="spin-icon" style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-cyan)' }} />
+                        <span>Escaneando números y texto de tu foto (OCR)...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={14} color="#4ade80" />
+                        <span>Foto procesada • Revisa los datos detectados abajo</span>
+                      </>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Anto usará estos datos exactos para resolver tu ejercicio.
+                  </span>
+                </div>
+                <button className="btn-secondary" style={{ padding: '0.35rem' }} onClick={removeSelectedImage} title="Quitar foto">
+                  <X size={16} />
+                </button>
               </div>
-              <button className="btn-secondary" style={{ padding: '0.25rem' }} onClick={removeSelectedImage}>
-                <X size={16} />
-              </button>
+
+              {/* Caja de edición de texto extraído por OCR */}
+              {!isOcrScanning && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: '500' }}>
+                    <Edit3 size={13} />
+                    <span>Texto / Datos detectados (puedes corregir si algo se leyó mal):</span>
+                  </div>
+                  <textarea
+                    rows={2}
+                    value={ocrText}
+                    onChange={(e) => setOcrText(e.target.value)}
+                    placeholder="Ej. Un auto va a 20 m/s y frena en 4 s..."
+                    style={{
+                      width: '100%',
+                      background: 'rgba(15, 23, 42, 0.8)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      borderRadius: '8px',
+                      color: '#f8fafc',
+                      fontSize: '0.82rem',
+                      padding: '0.4rem 0.6rem',
+                      resize: 'none',
+                      fontFamily: 'inherit'
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
 
