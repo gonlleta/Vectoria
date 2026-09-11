@@ -109,48 +109,66 @@ function parseMRUMRUVInput(text) {
     rawNumbers: []
   };
 
+  // Regex para capturar números decimales y posibles unidades adjuntas
   const numberRegex = /(-?\d+(?:[.,]\d+)?)\s*([a-zA-Z°/²³^1-9]+)?/g;
   let match;
 
   while ((match = numberRegex.exec(text)) !== null) {
     const num = parseFloat(match[1].replace(',', '.'));
-    const unit = (match[2] || '').toLowerCase();
+    let unit = (match[2] || '').toLowerCase().trim();
 
     if (isNaN(num)) continue;
+
+    // Normalizar unidades ambiguas de OCR
+    if (unit.startsWith('km/h') || unit.startsWith('kmh') || unit.startsWith('k/h')) unit = 'km/h';
+    else if (unit.startsWith('m/s2') || unit.startsWith('m/s^2') || unit.startsWith('ms2')) unit = 'm/s2';
+    else if (unit.startsWith('m/s') || unit.startsWith('ms') || unit.startsWith('m/sec')) unit = 'm/s';
+    else if (unit === 'm' || unit === 'mt' || unit === 'mts' || unit === 'metros' || unit === 'metro') unit = 'm';
+    else if (unit === 'km' || unit === 'kms' || unit === 'kilometros') unit = 'km';
+    else if (unit === 's' || unit === 'seg' || unit === 'segs' || unit === 'sec' || unit === 'segundos') unit = 's';
+    else if (unit === 'min' || unit === 'mins' || unit === 'minutos') unit = 'min';
+    else if (unit === 'h' || unit === 'hs' || unit === 'horas') unit = 'h';
+
     result.rawNumbers.push({ num, unit });
 
-    if (unit === 'km/h' || unit === 'kmh') {
+    if (unit === 'km/h') {
       const ms = num / 3.6;
-      if (text.includes('inicial') || text.includes('partiendo') || text.includes('viaja a')) {
+      if (text.includes('inicial') || text.includes('partiendo') || text.includes('viaja a') || result.v0 === null) {
         result.v0 = ms;
       } else if (text.includes('final') || text.includes('alcanza') || text.includes('frena')) {
         result.vf = ms;
       } else {
         result.velocidad = ms;
       }
-    } else if (unit === 'm/s' || unit === 'ms') {
-      if (text.includes('inicial') || text.includes('partiendo')) result.v0 = num;
-      else if (text.includes('final') || text.includes('frena')) result.vf = num;
-      else result.velocidad = num;
-    } else if (unit === 'm' || unit === 'metros' || unit === 'metro') {
+    } else if (unit === 'm/s') {
+      if (text.includes('inicial') || text.includes('partiendo') || (result.v0 === null && result.vf !== null)) {
+        result.v0 = num;
+      } else if (text.includes('final') || text.includes('frena') || text.includes('alcanza')) {
+        result.vf = num;
+      } else if (result.v0 === null) {
+        result.v0 = num;
+      } else {
+        result.velocidad = num;
+      }
+    } else if (unit === 'm') {
       result.distancia = num;
-    } else if (unit === 'km' || unit === 'kilometros') {
+    } else if (unit === 'km') {
       result.distancia = num * 1000;
-    } else if (unit === 's' || unit === 'seg' || unit === 'segundos') {
+    } else if (unit === 's') {
       result.tiempo = num;
-    } else if (unit === 'min' || unit === 'minutos') {
+    } else if (unit === 'min') {
       result.tiempo = num * 60;
-    } else if (unit === 'h' || unit === 'horas') {
+    } else if (unit === 'h') {
       result.tiempo = num * 3600;
-    } else if (unit === 'm/s2' || unit === 'm/s^2' || unit === 'ms2') {
+    } else if (unit === 'm/s2') {
       result.aceleracion = num;
     }
   }
 
-  if (text.includes('partiendo del reposo') || text.includes('desde el reposo') || text.includes('parte del reposo')) {
+  if (text.includes('partiendo del reposo') || text.includes('desde el reposo') || text.includes('parte del reposo') || text.includes('reposo')) {
     result.v0 = 0;
   }
-  if (text.includes('hasta detenerse') || text.includes('se detiene') || text.includes('frena por completo')) {
+  if (text.includes('hasta detenerse') || text.includes('se detiene') || text.includes('frena por completo') || text.includes('detiene')) {
     result.vf = 0;
   }
 
@@ -162,14 +180,24 @@ function solveMRUDetail(ext) {
   let v = ext.velocidad || ext.v0;
   let t = ext.tiempo;
 
+  // Si los datos no están categorizados por unidad, intentar asignar números extraídos en orden
   if (d === null && v === null && t === null) {
     if (ext.rawNumbers.length >= 2) {
       d = ext.rawNumbers[0].num;
       t = ext.rawNumbers[1].num;
-    } else {
-      d = 100;
-      t = 5;
     }
+  }
+
+  // Si aún faltan datos numéricos reales, NO INVENTAR NÚMEROS
+  if ((d === null && v === null) || (d === null && t === null) || (v === null && t === null)) {
+    return {
+      isConceptual: true,
+      title: 'Datos numéricos incompletos o ilegibles ⚠️',
+      category: 'MRU - Falta de datos',
+      explicacion: '¡Hola! 🫶 Anto no pudo extraer suficientes datos numéricos claros (distancia, tiempo o velocidad) de tu consulta o foto.\n\nPor favor, escribe o confirma los valores numéricos de tu ejercicio en los casilleros de abajo (ejemplo: d = 100 m, t = 5 s) para que pueda resolverlo exactamente con tus datos reales.',
+      formula: 'v = \\frac{d}{t} \\quad | \\quad d = v \\cdot t \\quad | \\quad t = \\frac{d}{v}',
+      tip: 'Verifica que las unidades en tu consulta o foto estén en metros (m), segundos (s) o km/h.'
+    };
   }
 
   let datos = [];
@@ -192,7 +220,7 @@ function solveMRUDetail(ext) {
       `1) Planteamos la ecuación fundamental del MRU: v = d / t`,
       `2) Sustituimos la distancia (${d} m) y el tiempo (${t} s): v = ${d} / ${t}`,
       `3) Realizamos la división: v = ${resVal.toFixed(2)} m/s`,
-      `4) Conversión opcional a km/h: ${resVal.toFixed(2)} m/s × 3.6 = ${(resVal * 3.6).toFixed(2)} km/h`
+      `4) Conversión a km/h: ${resVal.toFixed(2)} m/s × 3.6 = ${(resVal * 3.6).toFixed(2)} km/h`
     ];
   } else if (v !== null && t !== null) {
     incognita = 'Distancia Recorrida (d)';
@@ -233,16 +261,35 @@ function solveMRUDetail(ext) {
     datos,
     pasos,
     resultado: `${resVal.toFixed(2)} ${formatUnitLatex(unit)}`,
-    explicacion: `¡Listo! 🚗 En el MRU la velocidad se mantiene totalmente constante sin aceleración.`,
+    explicacion: `¡Listo! 🚗 Ejercicio de MRU resuelto estrictamente con tus datos.`,
     tip: 'Recuerda que para pasar de m/s a km/h se multiplica por 3.6.'
   };
 }
 
 function solveMRUVDetail(ext) {
-  let v0 = ext.v0 !== null ? ext.v0 : (ext.velocidad !== null ? ext.velocidad : 0);
+  let v0 = ext.v0 !== null ? ext.v0 : (ext.velocidad !== null ? ext.velocidad : null);
   let vf = ext.vf;
   let a = ext.aceleracion;
   let t = ext.tiempo;
+
+  // Asignar desde rawNumbers sólo si están disponibles y no hay asignaciones directas
+  if (v0 === null && vf === null && a === null && t === null && ext.rawNumbers.length >= 3) {
+    v0 = ext.rawNumbers[0].num;
+    vf = ext.rawNumbers[1].num;
+    t = ext.rawNumbers[2].num;
+  }
+
+  // Si faltan datos suficientes para resolver MRUV, NO INVENTAR NÚMEROS
+  if ((v0 === null || vf === null || t === null) && (v0 === null || a === null || t === null)) {
+    return {
+      isConceptual: true,
+      title: 'Datos de MRUV incompletos ⚠️',
+      category: 'MRUV - Falta de datos',
+      explicacion: '¡Hola! 🫶 Anto detectó un problema de movimiento variado (MRUV), pero no encontró suficientes datos numéricos claros (como velocidad inicial v₀, velocidad final v_f, tiempo t o aceleración a).\n\nPor favor, confirma o escribe los valores de tu foto en los casilleros de abajo para resolvértelo exactamente.',
+      formula: 'a = \\frac{v_f - v_0}{t} \\quad | \\quad d = v_0 t + \\frac{1}{2} a t^2',
+      tip: 'Si el objeto parte del reposo, v₀ = 0. Si se detiene por completo, v_f = 0.'
+    };
+  }
 
   let datos = [];
   let pasos = [];
@@ -283,23 +330,6 @@ function solveMRUVDetail(ext) {
       `3) Calculamos el segundo término (avance por aceleración): 0.5 × ${a.toFixed(2)} m/s² × (${t} s)² = ${(0.5 * a * t * t).toFixed(2)} m`,
       `4) Sumamos ambos términos: d = ${(v0 * t).toFixed(2)} m + ${(0.5 * a * t * t).toFixed(2)} m = ${resVal.toFixed(2)} m`
     ];
-  } else {
-    v0 = ext.rawNumbers[0]?.num || 0;
-    vf = ext.rawNumbers[1]?.num || 20;
-    t = ext.rawNumbers[2]?.num || 4;
-    resVal = (vf - v0) / t;
-    unit = 'm/s^2';
-    formula = 'a = \\frac{v_f - v_0}{t}';
-    datos = [
-      { label: 'v₀', val: `${v0} m/s` },
-      { label: 'v_f', val: `${vf} m/s` },
-      { label: 't', val: `${t} s` }
-    ];
-    pasos = [
-      `1) Aplicamos la ecuación de aceleración en MRUV: a = (v_f - v_0) / t`,
-      `2) Sustituimos los valores: a = (${vf} m/s - ${v0} m/s) / ${t} s`,
-      `3) Aceleración calculada: a = ${resVal.toFixed(2)} m/s²`
-    ];
   }
 
   return {
@@ -311,7 +341,7 @@ function solveMRUVDetail(ext) {
     datos,
     pasos,
     resultado: `${resVal.toFixed(2)} ${formatUnitLatex(unit)}`,
-    explicacion: `¡Excelente ejercicio de MRUV! 🏎️ En el MRUV la aceleración es constante y modifica el valor de la velocidad en cada segundo.`,
+    explicacion: `¡Excelente! Ejercicio de MRUV resuelto exactamente con tus datos.`,
     tip: 'Si el móvil frena hasta detenerse, la velocidad final v_f siempre vale 0 m/s.'
   };
 }

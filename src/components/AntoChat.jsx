@@ -26,6 +26,7 @@ export default function AntoChat({ apiKey }) {
   const [selectedImage, setSelectedImage] = useState(null);
   const [ocrText, setOcrText] = useState('');
   const [isOcrScanning, setIsOcrScanning] = useState(false);
+  const [photoData, setPhotoData] = useState({ v0: '', vf: '', d: '', t: '', a: '' });
   const [isRecording, setIsRecording] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
@@ -104,7 +105,8 @@ export default function AntoChat({ apiKey }) {
         setSelectedImage(imgDataUrl);
         setIsOcrScanning(true);
         setOcrText('');
-        
+        setPhotoData({ v0: '', vf: '', d: '', t: '', a: '' });
+
         // Escanear texto con OCR
         const scanned = await scanImageText(imgDataUrl);
         setOcrText(scanned);
@@ -117,13 +119,14 @@ export default function AntoChat({ apiKey }) {
   const removeSelectedImage = () => {
     setSelectedImage(null);
     setOcrText('');
+    setPhotoData({ v0: '', vf: '', d: '', t: '', a: '' });
     setIsOcrScanning(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSend = async (textToSend) => {
     const query = textToSend || input;
-    if ((!query.trim() && !selectedImage && !ocrText.trim()) || loading) return;
+    if ((!query.trim() && !selectedImage && !ocrText.trim() && !Object.values(photoData).some(Boolean)) || loading) return;
 
     if (query === "📷 Adjuntar foto de mi ejercicio") {
       fileInputRef.current?.click();
@@ -137,16 +140,31 @@ export default function AntoChat({ apiKey }) {
 
     const currentImage = selectedImage;
     const currentOcrText = ocrText;
+    const currentPhotoData = { ...photoData };
+
     setSelectedImage(null);
     setOcrText('');
+    setPhotoData({ v0: '', vf: '', d: '', t: '', a: '' });
     setIsOcrScanning(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
 
-    const fullPromptForUserMsg = query || (currentOcrText ? `[Foto adjunta]: ${currentOcrText}` : 'Análisis de foto');
+    // Construir string explícito de datos confirmados por el usuario
+    const confirmArr = [];
+    if (currentPhotoData.v0) confirmArr.push(`Velocidad inicial v0 = ${currentPhotoData.v0} m/s`);
+    if (currentPhotoData.vf) confirmArr.push(`Velocidad final vf = ${currentPhotoData.vf} m/s`);
+    if (currentPhotoData.d) confirmArr.push(`Distancia d = ${currentPhotoData.d} m`);
+    if (currentPhotoData.t) confirmArr.push(`Tiempo t = ${currentPhotoData.t} s`);
+    if (currentPhotoData.a) confirmArr.push(`Aceleración a = ${currentPhotoData.a} m/s²`);
+    
+    const confirmedDataStr = confirmArr.length ? `[DATOS CONFIRMADOS DE LA FOTO]: ${confirmArr.join(', ')}` : '';
+
+    const fullPromptForUserMsg = [query, confirmedDataStr, currentOcrText ? `(Texto foto: "${currentOcrText}")` : '']
+      .filter(Boolean)
+      .join(' | ');
 
     const userMsg = {
       sender: 'user',
-      text: fullPromptForUserMsg,
+      text: fullPromptForUserMsg || 'Análisis de foto de física',
       image: currentImage,
       ocrText: currentOcrText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -158,8 +176,7 @@ export default function AntoChat({ apiKey }) {
 
     try {
       if (apiKey) {
-        // Combinar query del usuario + texto extraído de la foto para máxima fidelidad
-        const combinedPrompt = [query, currentOcrText ? `(Texto transcrito de la foto: "${currentOcrText}")` : '']
+        const combinedPrompt = [query, confirmedDataStr, currentOcrText ? `(Texto transcrito de la foto: "${currentOcrText}")` : '']
           .filter(Boolean)
           .join('\n');
 
@@ -177,10 +194,12 @@ export default function AntoChat({ apiKey }) {
         await new Promise((resolve) => setTimeout(resolve, 650));
 
         let solution;
+        const combinedQueryText = [query, confirmedDataStr, currentOcrText].filter(Boolean).join(' ');
+
         if (currentImage) {
-          solution = analyzeImageProblem(currentImage, query, currentOcrText);
+          solution = analyzeImageProblem(currentImage, combinedQueryText, currentOcrText);
         } else {
-          solution = solvePhysicsProblem(query);
+          solution = solvePhysicsProblem(combinedQueryText);
         }
 
         setMessages((prev) => [
@@ -188,7 +207,7 @@ export default function AntoChat({ apiKey }) {
           {
             sender: 'anto',
             solution: solution,
-            userQuery: query || currentOcrText,
+            userQuery: combinedQueryText,
             text: solution.isConceptual
               ? solution.explicacion
               : `¡He resuelto tu ejercicio en la hoja de cuaderno virtual! 📝 Arriba tienes el desglose matemático detallado con los datos exactos y a continuación te lo explico por escrito:`,
@@ -339,9 +358,9 @@ export default function AntoChat({ apiKey }) {
                 </button>
               </div>
 
-              {/* Caja de edición de texto extraído por OCR */}
+              {/* Caja de edición de texto extraído por OCR y campos numéricos */}
               {!isOcrScanning && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.2rem' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: '500' }}>
                     <Edit3 size={13} />
                     <span>Texto / Datos detectados (puedes corregir si algo se leyó mal):</span>
@@ -363,6 +382,65 @@ export default function AntoChat({ apiKey }) {
                       fontFamily: 'inherit'
                     }}
                   />
+
+                  {/* Formulario rápido de confirmación de números */}
+                  <div style={{ background: 'rgba(2, 6, 23, 0.6)', padding: '0.6rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)', marginTop: '0.2rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#cbd5e1', fontWeight: '600', marginBottom: '0.4rem' }}>
+                      📋 Ingresa o confirma los valores de tu foto (para garantizar resolución 100% exacta):
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.4rem' }}>
+                      <div>
+                        <label style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'block' }}>v₀ (m/s o km/h)</label>
+                        <input
+                          type="number"
+                          placeholder="Ej. 10"
+                          value={photoData.v0}
+                          onChange={(e) => setPhotoData({ ...photoData, v0: e.target.value })}
+                          style={{ width: '100%', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '6px', color: '#fff', fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'block' }}>v_f (m/s)</label>
+                        <input
+                          type="number"
+                          placeholder="Ej. 30"
+                          value={photoData.vf}
+                          onChange={(e) => setPhotoData({ ...photoData, vf: e.target.value })}
+                          style={{ width: '100%', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '6px', color: '#fff', fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'block' }}>Distancia d (m)</label>
+                        <input
+                          type="number"
+                          placeholder="Ej. 100"
+                          value={photoData.d}
+                          onChange={(e) => setPhotoData({ ...photoData, d: e.target.value })}
+                          style={{ width: '100%', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '6px', color: '#fff', fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'block' }}>Tiempo t (s)</label>
+                        <input
+                          type="number"
+                          placeholder="Ej. 4"
+                          value={photoData.t}
+                          onChange={(e) => setPhotoData({ ...photoData, t: e.target.value })}
+                          style={{ width: '100%', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '6px', color: '#fff', fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'block' }}>Aceleración a</label>
+                        <input
+                          type="number"
+                          placeholder="Ej. 2"
+                          value={photoData.a}
+                          onChange={(e) => setPhotoData({ ...photoData, a: e.target.value })}
+                          style={{ width: '100%', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '6px', color: '#fff', fontSize: '0.78rem', padding: '0.25rem 0.4rem' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
